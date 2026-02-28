@@ -177,6 +177,14 @@ The script handles: version bump, CHANGELOG finalization, commit, tag, publish, 
 
 Multiple agents may work on different files in the same worktree simultaneously. You MUST follow these rules:
 
+### Branching and Integration Policy (Required)
+- `main` is integration-only. Do not do active feature work directly on `main`.
+- Start each task on a dedicated branch (`feat/...`, `fix/...`, `chore/...`).
+- For parallel implementation streams, use one worktree per branch.
+- Rebase task branches on top of the latest canonical `upstream/main` before merge.
+- Merge branches into local `main` first, then use the ship workflow to sync and push.
+- Exception: direct work on `main` is only allowed when the user explicitly requests bypassing this policy.
+
 ### Committing
 - **ONLY commit files YOU changed in THIS session**
 - ALWAYS include `fixes #<number>` or `closes #<number>` in the commit message when there is a related issue or PR

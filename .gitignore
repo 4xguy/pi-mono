@@ -33,3 +33,9 @@ pi-*.html
 out.html
 packages/coding-agent/binaries/
 todo.md
+
+# Local pi runtime artifacts and backups
+.pi/subagent-memory/
+.pi/extensions.backup.*/
+.pi/prompts.backup.*/
+.pi/extensions-source/subagent/

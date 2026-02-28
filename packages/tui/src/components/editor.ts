@@ -528,8 +528,18 @@ export class Editor implements Component, Focusable {
 					this.state.lines = result.lines;
 					this.state.cursorLine = result.cursorLine;
 					this.setCursorCol(result.cursorCol);
+					const textBeforeCursor = (this.state.lines[this.state.cursorLine] || "").slice(0, this.state.cursorCol);
+					const firstSpaceIndex = textBeforeCursor.indexOf(" ");
+					const shouldTriggerSlashArgumentAutocomplete =
+						this.autocompletePrefix.startsWith("/") &&
+						firstSpaceIndex > 0 &&
+						textBeforeCursor.startsWith("/") &&
+						textBeforeCursor.slice(firstSpaceIndex + 1).length === 0;
 					this.cancelAutocomplete();
 					if (this.onChange) this.onChange(this.getText());
+					if (shouldTriggerSlashArgumentAutocomplete) {
+						this.tryTriggerAutocomplete();
+					}
 				}
 				return;
 			}

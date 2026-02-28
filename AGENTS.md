@@ -210,6 +210,15 @@ git commit -m "fix(ai): description"
 git pull --rebase && git push
 ```
 
+### Push / Ship Workflow (Required)
+- When the user asks to push or ship, always run `./scripts/ship-main.sh` from repo root.
+- This workflow must include: fetch `upstream` + `origin`, rebase `main` onto `upstream/main`, run `npm run check`, then push `main` to `origin/main`.
+- Do not run a direct `git push` for `main` unless the user explicitly asks to bypass this workflow.
+- To enforce this locally, set hooks path once per clone:
+  ```bash
+  git config core.hooksPath .githooks
+  ```
+
 ### If Rebase Conflicts Occur
 - Resolve conflicts in YOUR files only
 - If conflict is in a file you didn't modify, abort and ask the user

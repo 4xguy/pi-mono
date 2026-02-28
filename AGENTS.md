@@ -180,6 +180,7 @@ Multiple agents may work on different files in the same worktree simultaneously.
 ### Branching and Integration Policy (Required)
 - `main` is integration-only. Do not do active feature work directly on `main`.
 - Start each task on a dedicated branch (`feat/...`, `fix/...`, `chore/...`).
+- Use `./scripts/start-task.sh` to bootstrap task branches (and optional worktree setup) instead of manual branch creation.
 - For parallel implementation streams, use one worktree per branch.
 - Rebase task branches on top of the latest canonical `upstream/main` before merge.
 - Merge branches into local `main` first, then use the ship workflow to sync and push.
@@ -222,6 +223,14 @@ git pull --rebase && git push
 - When the user asks to push or ship, always run `./scripts/ship-main.sh` from repo root.
 - This workflow must include: fetch `upstream` + `origin`, rebase `main` onto `upstream/main`, run `npm run check`, then push `main` to `origin/main`.
 - Do not run a direct `git push` for `main` unless the user explicitly asks to bypass this workflow.
+- Standard operator flow:
+  ```bash
+  ./scripts/start-task.sh --type feat <task-name>
+  # implement + commit on task branch
+  git switch main
+  git merge --ff-only <task-branch>
+  ./scripts/ship-main.sh
+  ```
 - To enforce this locally, set hooks path once per clone:
   ```bash
   git config core.hooksPath .githooks

@@ -14,7 +14,7 @@ Build a modular system for:
 3. Coordinator (worker orchestration)
 4. Persistent capability/profile/run state
 
-## Current Scope (M2 in progress)
+## Current Scope (M3 in progress)
 
 Implemented so far:
 
@@ -25,11 +25,15 @@ Implemented so far:
 - Repository layer for capabilities/profiles/runs/events
 - Registry service + resolver stub
 - Runtime execution service with sandbox adapter (`src/runtime/*`)
+- Foundry service for scaffold/test/promote (`src/foundry/*`)
 - Command entrypoints:
   - `init`
   - `list`
   - `show`
   - `run`
+  - `build`
+  - `test`
+  - `promote`
   - `profiles`
   - `runs`
 
@@ -43,17 +47,20 @@ Usage examples:
 # initialize storage
 npx tsx src/cli.ts init --scope project
 
-# list capabilities
-npx tsx src/cli.ts list --status promoted --tag google
+# build a draft capability scaffold
+npx tsx src/cli.ts build github.issues.search --name "GitHub Issue Search" --language typescript --tags github,issues --alias gh-issues
 
-# show one capability
-npx tsx src/cli.ts show google.calendar.events
+# test a capability and write validation report
+npx tsx src/cli.ts test gh-issues --input '{"query":"bug"}'
 
-# execute a capability
-npx tsx src/cli.ts run github.issues.search --input '{"query":"bug"}' --allow-unpromoted
+# promote tested capability
+npx tsx src/cli.ts promote gh-issues
 
-# list profiles and runs
-npx tsx src/cli.ts profiles
+# execute promoted capability
+npx tsx src/cli.ts run gh-issues --input '{"query":"bug"}'
+
+# inspect state
+npx tsx src/cli.ts list
 npx tsx src/cli.ts runs --status completed
 ```
 
@@ -74,10 +81,11 @@ npx tsx ../../node_modules/vitest/dist/cli.js --run test/validators.test.ts
 npx tsx ../../node_modules/vitest/dist/cli.js --run test/repositories.test.ts
 npx tsx ../../node_modules/vitest/dist/cli.js --run test/commands.test.ts
 npx tsx ../../node_modules/vitest/dist/cli.js --run test/runtime-service.test.ts
+npx tsx ../../node_modules/vitest/dist/cli.js --run test/foundry-service.test.ts
 ```
 
 ## Notes
 
 - This is intentionally isolated from `packages/*` while the architecture stabilizes.
 - No core `pi` package behavior is changed by this incubator.
-- Promotion into a first-class package can happen after M1/M2 maturity.
+- Promotion into a first-class package can happen after M3/M4 maturity.

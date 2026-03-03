@@ -1,3 +1,4 @@
+import { FoundryService } from "../foundry/foundry-service.js";
 import { RegistryService } from "../registry/registry-service.js";
 import { RuntimeService } from "../runtime/runtime-service.js";
 import { type FabricScope, getFabricPaths } from "../storage/paths.js";
@@ -23,6 +24,17 @@ export function createRuntimeService(options: FabricCommandContextOptions = {}):
   });
 
   return new RuntimeService({
+    paths,
+  });
+}
+
+export function createFoundryService(options: FabricCommandContextOptions = {}): FoundryService {
+  const paths = getFabricPaths({
+    scope: options.scope,
+    cwd: options.cwd,
+  });
+
+  return new FoundryService({
     paths,
   });
 }

@@ -65,3 +65,19 @@ export interface CapabilityManifestDocument extends VersionedDocument, Timestamp
   quality: CapabilityQuality;
   provenance: CapabilityProvenance;
 }
+
+export interface ValidationReportChecks {
+  syntax: boolean;
+  smoke: boolean;
+  contract: boolean;
+  policy: boolean;
+}
+
+export interface CapabilityValidationReportDocument extends VersionedDocument {
+  capability_id: string;
+  version: string;
+  validated_at: string;
+  checks: ValidationReportChecks;
+  result: "pass" | "fail";
+  runtime_run_id: string | null;
+}

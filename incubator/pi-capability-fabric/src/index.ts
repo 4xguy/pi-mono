@@ -5,6 +5,9 @@ export * from "./commands/fabric-show.js";
 export * from "./commands/fabric-profiles.js";
 export * from "./commands/fabric-runs.js";
 export * from "./commands/fabric-run.js";
+export * from "./commands/fabric-build.js";
+export * from "./commands/fabric-test.js";
+export * from "./commands/fabric-promote.js";
 export * from "./commands/service.js";
 
 export * from "./contracts/common.js";
@@ -21,6 +24,8 @@ export * from "./storage/yaml.js";
 export * from "./registry/seed.js";
 export * from "./registry/resolver.js";
 export * from "./registry/registry-service.js";
+
+export * from "./foundry/foundry-service.js";
 
 export * from "./runtime/run-id.js";
 export * from "./runtime/sandbox.js";

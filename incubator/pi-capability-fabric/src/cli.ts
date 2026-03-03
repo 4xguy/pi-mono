@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 
+import { runFabricBuild } from "./commands/fabric-build.js";
 import { runFabricInit } from "./commands/fabric-init.js";
 import { runFabricList } from "./commands/fabric-list.js";
 import { runFabricProfiles } from "./commands/fabric-profiles.js";
+import { runFabricPromote } from "./commands/fabric-promote.js";
 import { runFabricRun } from "./commands/fabric-run.js";
 import { runFabricRuns } from "./commands/fabric-runs.js";
 import { runFabricShow } from "./commands/fabric-show.js";
-import { CAPABILITY_STATUSES, RUN_STATUSES } from "./contracts/common.js";
+import { runFabricTest } from "./commands/fabric-test.js";
+import { CAPABILITY_LANGUAGES, CAPABILITY_STATUSES, RUN_STATUSES } from "./contracts/common.js";
 import type { FabricScope } from "./storage/paths.js";
 
 function printHelp(): void {
@@ -17,12 +20,18 @@ Usage:
   fabric list [--scope <project|global>] [--status <status>] [--tag <tag>] [--query <text>]
   fabric show <capability-id-or-alias> [--scope <project|global>]
   fabric run <capability-id-or-alias> --input <json> [--profile <profile-id>] [--allow-unpromoted] [--scope <project|global>]
+  fabric build <capability-id> --name <name> --language <language> [--description <text>] [--tags <a,b>] [--version <v0001>] [--alias <alias>] [--auth-provider <provider>] [--auth-scopes <s1,s2>] [--scope <project|global>]
+  fabric test <capability-id-or-alias> --input <json> [--scope <project|global>]
+  fabric promote <capability-id-or-alias> [--scope <project|global>]
   fabric profiles [--scope <project|global>]
   fabric runs [--scope <project|global>] [--status <status>]
 
 Status values:
   capabilities: ${CAPABILITY_STATUSES.join(", ")}
   runs: ${RUN_STATUSES.join(", ")}
+
+Language values:
+  ${CAPABILITY_LANGUAGES.join(", ")}
 `);
 }
 
@@ -33,6 +42,15 @@ function parseOptionalFlag(args: string[], flag: string): string | undefined {
   }
 
   return args[index + 1];
+}
+
+function parseRequiredFlag(args: string[], flag: string, errorMessage: string): string {
+  const value = parseOptionalFlag(args, flag);
+  if (!value) {
+    throw new Error(errorMessage);
+  }
+
+  return value;
 }
 
 function hasFlag(args: string[], flag: string): boolean {
@@ -66,6 +84,21 @@ function parseCapabilityStatus(args: string[]): (typeof CAPABILITY_STATUSES)[num
   return status;
 }
 
+function parseCapabilityLanguage(args: string[]): (typeof CAPABILITY_LANGUAGES)[number] {
+  const value = parseRequiredFlag(
+    args,
+    "--language",
+    "build requires --language <python|typescript>",
+  );
+
+  const language = value as (typeof CAPABILITY_LANGUAGES)[number];
+  if (!CAPABILITY_LANGUAGES.includes(language)) {
+    throw new Error(`--language must be one of: ${CAPABILITY_LANGUAGES.join(", ")}`);
+  }
+
+  return language;
+}
+
 function parseRunStatus(args: string[]): (typeof RUN_STATUSES)[number] | undefined {
   const value = parseOptionalFlag(args, "--status");
   if (!value) {
@@ -83,7 +116,7 @@ function parseRunStatus(args: string[]): (typeof RUN_STATUSES)[number] | undefin
 function parseJsonInput(args: string[]): unknown {
   const raw = parseOptionalFlag(args, "--input");
   if (!raw) {
-    throw new Error("run requires --input <json>");
+    throw new Error("command requires --input <json>");
   }
 
   try {
@@ -92,6 +125,20 @@ function parseJsonInput(args: string[]): unknown {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Invalid JSON for --input: ${message}`);
   }
+}
+
+function parseCsvFlag(args: string[], flag: string): string[] | undefined {
+  const raw = parseOptionalFlag(args, flag);
+  if (!raw) {
+    return undefined;
+  }
+
+  const values = raw
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  return values.length > 0 ? values : undefined;
 }
 
 function printJson(value: unknown): void {
@@ -153,6 +200,74 @@ async function main(): Promise<void> {
       input,
       profile,
       allowUnpromoted,
+    });
+
+    printJson(result);
+    return;
+  }
+
+  if (command === "build") {
+    const capabilityId = args[1];
+    if (!capabilityId) {
+      throw new Error("build requires <capability-id>");
+    }
+
+    const scope = parseScope(args);
+    const name = parseRequiredFlag(args, "--name", "build requires --name <name>");
+    const language = parseCapabilityLanguage(args);
+    const description = parseOptionalFlag(args, "--description");
+    const tags = parseCsvFlag(args, "--tags");
+    const version = parseOptionalFlag(args, "--version");
+    const alias = parseOptionalFlag(args, "--alias");
+    const authProvider = parseOptionalFlag(args, "--auth-provider");
+    const authScopes = parseCsvFlag(args, "--auth-scopes");
+
+    const result = await runFabricBuild({
+      scope,
+      capabilityId,
+      name,
+      language,
+      description,
+      tags,
+      version,
+      alias,
+      authProvider,
+      authScopes,
+    });
+
+    printJson(result);
+    return;
+  }
+
+  if (command === "test") {
+    const capabilityIdOrAlias = args[1];
+    if (!capabilityIdOrAlias) {
+      throw new Error("test requires <capability-id-or-alias>");
+    }
+
+    const scope = parseScope(args);
+    const input = parseJsonInput(args);
+
+    const result = await runFabricTest({
+      scope,
+      capabilityIdOrAlias,
+      input,
+    });
+
+    printJson(result);
+    return;
+  }
+
+  if (command === "promote") {
+    const capabilityIdOrAlias = args[1];
+    if (!capabilityIdOrAlias) {
+      throw new Error("promote requires <capability-id-or-alias>");
+    }
+
+    const scope = parseScope(args);
+    const result = await runFabricPromote({
+      scope,
+      capabilityIdOrAlias,
     });
 
     printJson(result);

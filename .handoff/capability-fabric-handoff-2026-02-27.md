@@ -2,126 +2,109 @@
 title: "Handoff: Pi Capability Fabric Incubator"
 doc_id: "handoff-pi-capability-fabric-2026-02-27"
 status: "active"
-version: "0.3.0"
+version: "0.4.0"
 created_at: "2026-02-27T15:05:57-06:00"
-last_updated: "2026-02-28T13:24:31-06:00"
+last_updated: "2026-02-28T15:12:29-06:00"
 ---
 
 ## Objective Status
 
 - M1 foundation: complete
-- M2 runtime path: complete (incubator scope)
+- M2 runtime path: complete
+- M3 foundry path (build/test/promote): complete (incubator scope)
 
-This incubator is now testable end-to-end for capability execution lifecycle.
+## M3 Additions
 
-## Implemented Modules
+### Foundry service
+- `src/foundry/foundry-service.ts`
 
-### Contracts + Validation
-- `src/contracts/common.ts`
-- `src/contracts/capability.ts`
-- `src/contracts/profile.ts`
-- `src/contracts/run.ts`
-- `src/contracts/event.ts`
-- `src/contracts/validators.ts`
+Implemented:
+- `buildCapability()`
+  - scaffolds manifest + versioned tool/schema/tests/evidence files
+  - registers draft capability in registry
+  - optional alias registration
+- `testCapability()`
+  - executes capability through runtime with unpromoted allowance
+  - writes validation report to version evidence path
+  - updates manifest/registry status to `tested` or `blocked`
+  - updates quality counters
+- `promoteCapability()`
+  - requires `tested` status and passing validation report
+  - updates manifest/registry status to `promoted`
 
-Notable updates:
-- strict schema validation
-- run capability refs now enforced as `<capability_id>@<version>`
+### New commands
+- `src/commands/fabric-build.ts`
+- `src/commands/fabric-test.ts`
+- `src/commands/fabric-promote.ts`
 
-### Storage + Bootstrap
-- `src/storage/paths.ts`
-- `src/storage/files.ts`
-- `src/storage/yaml.ts`
-- `src/bootstrap.ts`
-- `src/registry/seed.ts`
-
-### Repositories + Registry Service
-- `src/repositories/capability-registry-repo.ts`
-- `src/repositories/profile-repo.ts`
-- `src/repositories/run-repo.ts`
-- `src/registry/resolver.ts`
-- `src/registry/registry-service.ts`
-
-### Runtime (M2)
-- `src/runtime/sandbox.ts`
-- `src/runtime/local-process-sandbox.ts`
-- `src/runtime/run-id.ts`
-- `src/runtime/runtime-service.ts`
-
-Capabilities:
-- promoted-only execution default
-- optional unpromoted override
-- profile tag-policy enforcement
-- sandbox execution (local process adapter)
-- run/event logging and artifact emission
-- failure/timeout handling with failed run state
-
-### Commands + CLI
-- `src/commands/fabric-init.ts`
-- `src/commands/fabric-list.ts`
-- `src/commands/fabric-show.ts`
-- `src/commands/fabric-profiles.ts`
-- `src/commands/fabric-runs.ts`
-- `src/commands/fabric-run.ts`
-- `src/commands/service.ts`
-- `src/cli.ts`
-
-Available command surface:
+CLI command surface now:
 - `init`
 - `list`
 - `show`
 - `run`
+- `build`
+- `test`
+- `promote`
 - `profiles`
 - `runs`
 
-## Tests Added
+### Contract updates
+- `src/contracts/capability.ts`
+  - added `CapabilityValidationReportDocument`
+- `src/contracts/validators.ts`
+  - added `parseCapabilityValidationReportDocument()`
+  - existing run capability ref enforcement retained (`<capability_id>@<version>`)
 
-- `test/validators.test.ts`
+## Tests Added/Updated
+
+Added:
+- `test/foundry-service.test.ts`
+- `test/foundry-commands.test.ts`
+
+Updated:
+- `test/validators.test.ts` (validation report parsing coverage)
+
+Existing tests retained:
 - `test/repositories.test.ts`
 - `test/commands.test.ts`
 - `test/runtime-service.test.ts`
-- `test/helpers.ts`
 
-## Validation Results
+## Validation Results (current)
 
 Passed:
 - `cd incubator/pi-capability-fabric && ../../node_modules/.bin/tsc --noEmit -p tsconfig.json`
-- `cd incubator/pi-capability-fabric && npx tsx ../../node_modules/vitest/dist/cli.js --run test/validators.test.ts test/repositories.test.ts test/commands.test.ts test/runtime-service.test.ts`
-  - 4 files, 15 tests passed
-
-Still failing (pre-existing unrelated baseline):
-- `npm run check`
-- fails in `packages/web-ui` with unresolved `@mariozechner/pi-ai` / `@mariozechner/pi-agent-core` + implicit-any errors
+- `cd incubator/pi-capability-fabric && npx tsx ../../node_modules/vitest/dist/cli.js --run test/validators.test.ts test/repositories.test.ts test/commands.test.ts test/runtime-service.test.ts test/foundry-service.test.ts test/foundry-commands.test.ts`
+  - 6 files, 19 tests passed
+- `npm run check` (repo-wide) passes in this workspace
 
 ## Practical Functional State
 
-You can now:
-1. initialize fabric storage
-2. register capabilities/manifests (via repository/service APIs)
-3. execute capabilities through sandbox runtime
-4. persist runs/events/artifacts
-5. query runs/profiles/capabilities via command layer
+You can now run an end-to-end capability lifecycle in incubator:
 
-## Next Milestone Candidates (M3)
-
-1. Foundry pipeline (`build/test/promote` workflow)
-2. promotion evidence/validation artifacts automation
-3. richer resolver ranking (quality + recency)
-4. coordinator subprocess orchestration and parallel workers
+1. `build` scaffold draft capability
+2. `test` execute and generate evidence
+3. `promote` transition tested capability to promoted
+4. `run` execute promoted capability in runtime sandbox
+5. inspect with `list/show/runs`
 
 ## Resume Commands
 
 ```bash
-# typecheck
 cd incubator/pi-capability-fabric
 ../../node_modules/.bin/tsc --noEmit -p tsconfig.json
 
-# run tests
-npx tsx ../../node_modules/vitest/dist/cli.js --run test/validators.test.ts test/repositories.test.ts test/commands.test.ts test/runtime-service.test.ts
+npx tsx ../../node_modules/vitest/dist/cli.js --run \
+  test/validators.test.ts \
+  test/repositories.test.ts \
+  test/commands.test.ts \
+  test/runtime-service.test.ts \
+  test/foundry-service.test.ts \
+  test/foundry-commands.test.ts
 
-# sample CLI usage
+# example flow
 npx tsx src/cli.ts init --scope project
-npx tsx src/cli.ts list --scope project
-npx tsx src/cli.ts run <capability-id-or-alias> --input '{"foo":"bar"}' --allow-unpromoted --scope project
-npx tsx src/cli.ts runs --scope project
+npx tsx src/cli.ts build demo.echo --name "Demo Echo" --language typescript --tags demo --alias echo
+npx tsx src/cli.ts test echo --input '{"hello":"world"}'
+npx tsx src/cli.ts promote echo
+npx tsx src/cli.ts run echo --input '{"hello":"world"}'
 ```

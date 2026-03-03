@@ -4,6 +4,7 @@ import type {
   CapabilityManifestDocument,
   CapabilityRegistryDocument,
   CapabilityRegistryEntry,
+  CapabilityValidationReportDocument,
 } from "./capability.js";
 import type { RunEventDocument } from "./event.js";
 import type { ProfileDocument } from "./profile.js";
@@ -302,6 +303,55 @@ export function parseCapabilityManifestDocument(value: unknown): CapabilityManif
     provenance,
     created_at: createdAt,
     last_updated: lastUpdated,
+  };
+}
+
+export function parseCapabilityValidationReportDocument(
+  value: unknown,
+): CapabilityValidationReportDocument {
+  const record = expectRecord(value, "validation_report");
+
+  const schemaVersion = expectSchemaVersion(record.schema_version, "validation_report.schema_version");
+  const capabilityId = expectPattern(
+    record.capability_id,
+    CAPABILITY_ID_PATTERN,
+    "validation_report.capability_id",
+    "capability_id format",
+  );
+  const version = expectString(record.version, "validation_report.version");
+  const validatedAt = expectTimestamp(record.validated_at, "validation_report.validated_at");
+
+  const checksRaw = expectRecord(record.checks, "validation_report.checks");
+  const checks = {
+    syntax: expectBoolean(checksRaw.syntax, "validation_report.checks.syntax"),
+    smoke: expectBoolean(checksRaw.smoke, "validation_report.checks.smoke"),
+    contract: expectBoolean(checksRaw.contract, "validation_report.checks.contract"),
+    policy: expectBoolean(checksRaw.policy, "validation_report.checks.policy"),
+  };
+
+  const resultRaw = expectString(record.result, "validation_report.result");
+  if (resultRaw !== "pass" && resultRaw !== "fail") {
+    throw new ContractValidationError(
+      "validation_report.result",
+      'expected one of: pass, fail',
+    );
+  }
+
+  const runtimeRunIdRaw = record.runtime_run_id;
+  const runtimeRunId = runtimeRunIdRaw === null ? null : expectString(runtimeRunIdRaw, "validation_report.runtime_run_id");
+
+  if (runtimeRunId !== null && !RUN_ID_PATTERN.test(runtimeRunId)) {
+    throw new ContractValidationError("validation_report.runtime_run_id", "invalid run_id format");
+  }
+
+  return {
+    schema_version: schemaVersion,
+    capability_id: capabilityId,
+    version,
+    validated_at: validatedAt,
+    checks,
+    result: resultRaw,
+    runtime_run_id: runtimeRunId,
   };
 }
 

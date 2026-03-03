@@ -3,6 +3,7 @@ import { ContractValidationError } from "../src/contracts/common.js";
 import {
   parseCapabilityManifestDocument,
   parseCapabilityRegistryDocument,
+  parseCapabilityValidationReportDocument,
   parseRunDocument,
   parseRunEventDocument,
 } from "../src/contracts/validators.js";
@@ -156,6 +157,25 @@ describe("contracts validators", () => {
         error: null,
       }),
     ).toThrowError(ContractValidationError);
+  });
+
+  it("parses a valid validation report", () => {
+    const report = parseCapabilityValidationReportDocument({
+      schema_version: "1",
+      capability_id: "google.calendar.events",
+      version: "v0001",
+      validated_at: "2026-02-27T15:00:00.000Z",
+      checks: {
+        syntax: true,
+        smoke: true,
+        contract: true,
+        policy: true,
+      },
+      result: "pass",
+      runtime_run_id: "run_20260227_150000_001",
+    });
+
+    expect(report.result).toBe("pass");
   });
 
   it("parses valid run events", () => {

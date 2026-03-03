@@ -33,3 +33,9 @@ pi-*.html
 out.html
 packages/coding-agent/binaries/
 todo.md
+
+# Claude Code / session state
+.claude/
+.context/
+.project/
+subagent-smoke/

@@ -109,7 +109,7 @@ export function createExtensionRuntime(): ExtensionRuntime {
 		throw new Error("Extension runtime not initialized. Action methods cannot be called during extension loading.");
 	};
 
-	return {
+	const runtime: ExtensionRuntime = {
 		sendMessage: notInitialized,
 		sendUserMessage: notInitialized,
 		appendEntry: notInitialized,
@@ -119,13 +119,25 @@ export function createExtensionRuntime(): ExtensionRuntime {
 		getActiveTools: notInitialized,
 		getAllTools: notInitialized,
 		setActiveTools: notInitialized,
+		// registerTool() is valid during extension load; refresh is only needed post-bind.
+		refreshTools: () => {},
 		getCommands: notInitialized,
 		setModel: () => Promise.reject(new Error("Extension runtime not initialized")),
 		getThinkingLevel: notInitialized,
 		setThinkingLevel: notInitialized,
 		flagValues: new Map(),
 		pendingProviderRegistrations: [],
+		// Pre-bind: queue registrations so bindCore() can flush them once the
+		// model registry is available. bindCore() replaces both with direct calls.
+		registerProvider: (name, config) => {
+			runtime.pendingProviderRegistrations.push({ name, config });
+		},
+		unregisterProvider: (name) => {
+			runtime.pendingProviderRegistrations = runtime.pendingProviderRegistrations.filter((r) => r.name !== name);
+		},
 	};
+
+	return runtime;
 }
 
 /**
@@ -152,6 +164,7 @@ function createExtensionAPI(
 				definition: tool,
 				extensionPath: extension.path,
 			});
+			runtime.refreshTools();
 		},
 
 		registerCommand(name: string, options: Omit<RegisteredCommand, "name">): void {
@@ -246,7 +259,11 @@ function createExtensionAPI(
 		},
 
 		registerProvider(name: string, config: ProviderConfig) {
-			runtime.pendingProviderRegistrations.push({ name, config });
+			runtime.registerProvider(name, config);
+		},
+
+		unregisterProvider(name: string) {
+			runtime.unregisterProvider(name);
 		},
 
 		events: eventBus,

@@ -1,5 +1,7 @@
 import type { IsolationMode, ResolvedTaskExecution, SchedulerTask, TaskMode, WriteConflictPolicy } from "./types.js";
 
+export type TopologyPolicy = "advisory" | "auto";
+
 const GLOB_CHARS = /[*?{}[\]!]/;
 
 function getPatternBase(pattern: string): string {

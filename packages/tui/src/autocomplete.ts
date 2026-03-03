@@ -230,6 +230,23 @@ export class CombinedAutocompleteProvider implements AutocompleteProvider {
 			if (spaceIndex === -1) {
 				// No space yet - complete command names with fuzzy matching
 				const prefix = textBeforeCursor.slice(1); // Remove the "/"
+				const exactCommand = this.commands.find((cmd) => {
+					const name = "name" in cmd ? cmd.name : cmd.value;
+					return name === prefix;
+				});
+				if (exactCommand && "getArgumentCompletions" in exactCommand && exactCommand.getArgumentCompletions) {
+					const argumentSuggestions = exactCommand.getArgumentCompletions("");
+					if (argumentSuggestions && argumentSuggestions.length > 0) {
+						return {
+							items: argumentSuggestions.map((item) => ({
+								...item,
+								value: item.value.startsWith(`${prefix} `) ? item.value : `${prefix} ${item.value}`,
+							})),
+							prefix: textBeforeCursor,
+						};
+					}
+				}
+
 				const commandItems = this.commands.map((cmd) => ({
 					name: "name" in cmd ? cmd.name : cmd.value,
 					label: "name" in cmd ? cmd.name : cmd.label,

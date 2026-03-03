@@ -106,6 +106,58 @@ describe("CombinedAutocompleteProvider", () => {
 		});
 	});
 
+	describe("slash command argument suggestions", () => {
+		test("shows argument completions when command name is fully typed without trailing space", () => {
+			const provider = new CombinedAutocompleteProvider(
+				[
+					{
+						name: "subagent-auto",
+						description: "Toggle auto-route",
+						getArgumentCompletions: () => [
+							{ value: "on", label: "on", description: "Enable auto-route" },
+							{ value: "off", label: "off", description: "Disable auto-route" },
+						],
+					},
+				],
+				"/tmp",
+			);
+
+			const line = "/subagent-auto";
+			const result = provider.getSuggestions([line], 0, line.length);
+
+			assert.notEqual(result, null, "Should return command argument suggestions");
+			assert.deepStrictEqual(
+				result?.items.map((item) => item.value),
+				["subagent-auto on", "subagent-auto off"],
+			);
+			assert.deepStrictEqual(
+				result?.items.map((item) => item.label),
+				["on", "off"],
+			);
+		});
+
+		test("applies exact-command argument completion as slash command", () => {
+			const provider = new CombinedAutocompleteProvider(
+				[
+					{
+						name: "subagent-auto",
+						getArgumentCompletions: () => [{ value: "on", label: "on" }],
+					},
+				],
+				"/tmp",
+			);
+
+			const line = "/subagent-auto";
+			const result = provider.getSuggestions([line], 0, line.length);
+			assert.notEqual(result, null, "Should return suggestions");
+			const firstItem = result?.items[0];
+			assert.ok(firstItem, "Should have at least one completion item");
+
+			const applied = provider.applyCompletion([line], 0, line.length, firstItem!, result!.prefix);
+			assert.strictEqual(applied.lines[0], "/subagent-auto on ");
+		});
+	});
+
 	describe("fd @ file suggestions", { skip: !isFdInstalled }, () => {
 		let rootDir = "";
 		let baseDir = "";

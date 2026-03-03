@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added a worktree-first upgrade to the `examples/extensions/subagent` extension with write-safe parallel scheduling, per-task model/thinking/tool overrides, conflict policies (`serialize|fail`), patch integration, and `/subagent-mode off|assist|orchestrate` delegation guidance.
+- Added subagent orchestration test coverage: scheduler, policy, curation, frontmatter parsing, worktree lifecycle, and patch integration.
+
+### Changed
+
+- Expanded `examples/extensions/subagent` docs, sample agent frontmatter, and prompt templates to document write scopes (`writePaths`), isolation modes, and orchestration best practices.
+
 ## [0.55.1] - 2026-02-26
 
 ### New Features

@@ -8,3 +8,4 @@ Use the subagent tool with the chain parameter to execute this workflow:
 3. Finally, use the "worker" agent to implement the plan from the previous step (use {previous} placeholder)
 
 Execute this as a chain, passing output between steps via {previous}.
+If the plan includes multiple independent file groups, split worker tasks with explicit `writePaths` so parallel execution can use worktree isolation safely.

@@ -4,7 +4,10 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir, parseFrontmatter } from "@mariozechner/pi-coding-agent";
+import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
+import { getAgentDir } from "../../../src/config.js";
+import { parseFrontmatter } from "../../../src/utils/frontmatter.js";
+import type { IsolationMode, TaskMode } from "./types.js";
 
 export type AgentScope = "user" | "project" | "both";
 
@@ -12,7 +15,14 @@ export interface AgentConfig {
 	name: string;
 	description: string;
 	tools?: string[];
+	disallowedTools?: string[];
 	model?: string;
+	thinking?: ThinkingLevel;
+	mode?: TaskMode;
+	writePaths?: string[];
+	isolation?: IsolationMode;
+	timeoutMs?: number;
+	useProactively?: boolean;
 	systemPrompt: string;
 	source: "user" | "project";
 	filePath: string;
@@ -23,7 +33,70 @@ export interface AgentDiscoveryResult {
 	projectAgentsDir: string | null;
 }
 
-function loadAgentsFromDir(dir: string, source: "user" | "project"): AgentConfig[] {
+type AgentFrontmatter = {
+	name?: string;
+	description?: string;
+	tools?: string | string[];
+	disallowedTools?: string | string[];
+	model?: string;
+	thinking?: string;
+	mode?: string;
+	writePaths?: string | string[];
+	isolation?: string;
+	timeoutMs?: number | string;
+	useProactively?: boolean | string;
+};
+
+function parseListField(value: string | string[] | undefined): string[] | undefined {
+	if (!value) return undefined;
+	const rawItems = Array.isArray(value) ? value : value.split(",");
+	const normalized = rawItems.map((item) => item.trim()).filter(Boolean);
+	return normalized.length > 0 ? normalized : undefined;
+}
+
+function parseThinking(value: string | undefined): ThinkingLevel | undefined {
+	if (!value) return undefined;
+	if (
+		value === "off" ||
+		value === "minimal" ||
+		value === "low" ||
+		value === "medium" ||
+		value === "high" ||
+		value === "xhigh"
+	) {
+		return value;
+	}
+	return undefined;
+}
+
+function parseMode(value: string | undefined): TaskMode | undefined {
+	if (value === "read" || value === "write" || value === "auto") return value;
+	return undefined;
+}
+
+function parseIsolation(value: string | undefined): IsolationMode | undefined {
+	if (value === "none" || value === "worktree") return value;
+	return undefined;
+}
+
+function parseTimeoutMs(value: number | string | undefined): number | undefined {
+	if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+	if (typeof value === "string") {
+		const parsed = Number(value.trim());
+		if (Number.isFinite(parsed) && parsed > 0) return parsed;
+	}
+	return undefined;
+}
+
+function parseUseProactively(value: boolean | string | undefined): boolean | undefined {
+	if (typeof value === "boolean") return value;
+	if (typeof value !== "string") return undefined;
+	if (value === "true") return true;
+	if (value === "false") return false;
+	return undefined;
+}
+
+export function loadAgentsFromDir(dir: string, source: "user" | "project"): AgentConfig[] {
 	const agents: AgentConfig[] = [];
 
 	if (!fs.existsSync(dir)) {
@@ -49,22 +122,24 @@ function loadAgentsFromDir(dir: string, source: "user" | "project"): AgentConfig
 			continue;
 		}
 
-		const { frontmatter, body } = parseFrontmatter<Record<string, string>>(content);
+		const { frontmatter, body } = parseFrontmatter<AgentFrontmatter>(content);
 
 		if (!frontmatter.name || !frontmatter.description) {
 			continue;
 		}
 
-		const tools = frontmatter.tools
-			?.split(",")
-			.map((t: string) => t.trim())
-			.filter(Boolean);
-
 		agents.push({
 			name: frontmatter.name,
 			description: frontmatter.description,
-			tools: tools && tools.length > 0 ? tools : undefined,
+			tools: parseListField(frontmatter.tools),
+			disallowedTools: parseListField(frontmatter.disallowedTools),
 			model: frontmatter.model,
+			thinking: parseThinking(frontmatter.thinking),
+			mode: parseMode(frontmatter.mode),
+			writePaths: parseListField(frontmatter.writePaths),
+			isolation: parseIsolation(frontmatter.isolation),
+			timeoutMs: parseTimeoutMs(frontmatter.timeoutMs),
+			useProactively: parseUseProactively(frontmatter.useProactively),
 			systemPrompt: body,
 			source,
 			filePath,
@@ -82,7 +157,7 @@ function isDirectory(p: string): boolean {
 	}
 }
 
-function findNearestProjectAgentsDir(cwd: string): string | null {
+export function findNearestProjectAgentsDir(cwd: string): string | null {
 	let currentDir = cwd;
 	while (true) {
 		const candidate = path.join(currentDir, ".pi", "agents");
@@ -120,7 +195,7 @@ export function formatAgentList(agents: AgentConfig[], maxItems: number): { text
 	const listed = agents.slice(0, maxItems);
 	const remaining = agents.length - listed.length;
 	return {
-		text: listed.map((a) => `${a.name} (${a.source}): ${a.description}`).join("; "),
+		text: listed.map((agent) => `${agent.name} (${agent.source}): ${agent.description}`).join("; "),
 		remaining,
 	};
 }

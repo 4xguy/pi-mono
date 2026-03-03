@@ -1,32 +1,44 @@
-# Subagent Example
+# Subagent Example (Worktree-First)
 
-Delegate tasks to specialized subagents with isolated context windows.
+Delegate tasks to specialized subagents with isolated context windows, deterministic scheduling, and optional git-worktree isolation for write-capable tasks.
 
 ## Features
 
 - **Isolated context**: Each subagent runs in a separate `pi` process
+- **Model/profile overrides**: Per-agent and per-task `model`, `thinking`, and `tools`
+- **Worktree-first writes**: Write-capable tasks default to `isolation: worktree`
+- **Deterministic scheduler**: Parallel waves with conflict detection (`writePaths` + isolation)
+- **Patch integration**: Worktree diffs are applied back to the main checkout with 3-way apply
+- **Conflict policy**: `onWriteConflict: serialize|fail`
 - **Streaming output**: See tool calls and progress as they happen
-- **Parallel streaming**: All parallel tasks stream updates simultaneously
-- **Markdown rendering**: Final output rendered with proper formatting (expanded view)
-- **Usage tracking**: Shows turns, tokens, cost, and context usage per agent
-- **Abort support**: Ctrl+C propagates to kill subagent processes
+- **Curated results**: Compact `content` + full `details` + optional JSON artifact file
+- **Abort propagation**: Ctrl+C propagates to subagent processes
+- **Auto-delegation mode**: `/subagent-mode off|assist|orchestrate`
 
 ## Structure
 
-```
+```text
 subagent/
-├── README.md            # This file
-├── index.ts             # The extension (entry point)
-├── agents.ts            # Agent discovery logic
-├── agents/              # Sample agent definitions
-│   ├── scout.md         # Fast recon, returns compressed context
-│   ├── planner.md       # Creates implementation plans
-│   ├── reviewer.md      # Code review
-│   └── worker.md        # General-purpose (full capabilities)
-└── prompts/             # Workflow presets (prompt templates)
-    ├── implement.md     # scout -> planner -> worker
-    ├── scout-and-plan.md    # scout -> planner (no implementation)
-    └── implement-and-review.md  # worker -> reviewer -> worker
+├── README.md
+├── index.ts
+├── agents.ts
+├── types.ts
+├── config.ts
+├── profiles.ts
+├── policy.ts
+├── scheduler.ts
+├── worktree.ts
+├── integration.ts
+├── curation.ts
+├── agents/
+│   ├── scout.md
+│   ├── planner.md
+│   ├── reviewer.md
+│   └── worker.md
+└── prompts/
+    ├── implement.md
+    ├── scout-and-plan.md
+    └── implement-and-review.md
 ```
 
 ## Installation
@@ -34,18 +46,19 @@ subagent/
 From the repository root, symlink the files:
 
 ```bash
-# Symlink the extension (must be in a subdirectory with index.ts)
 mkdir -p ~/.pi/agent/extensions/subagent
 ln -sf "$(pwd)/packages/coding-agent/examples/extensions/subagent/index.ts" ~/.pi/agent/extensions/subagent/index.ts
-ln -sf "$(pwd)/packages/coding-agent/examples/extensions/subagent/agents.ts" ~/.pi/agent/extensions/subagent/agents.ts
 
-# Symlink agents
+# Optional helpers for local development / imports
+for f in agents.ts types.ts config.ts profiles.ts policy.ts scheduler.ts worktree.ts integration.ts curation.ts; do
+  ln -sf "$(pwd)/packages/coding-agent/examples/extensions/subagent/$f" ~/.pi/agent/extensions/subagent/$f
+done
+
 mkdir -p ~/.pi/agent/agents
 for f in packages/coding-agent/examples/extensions/subagent/agents/*.md; do
   ln -sf "$(pwd)/$f" ~/.pi/agent/agents/$(basename "$f")
 done
 
-# Symlink workflow prompts
 mkdir -p ~/.pi/agent/prompts
 for f in packages/coding-agent/examples/extensions/subagent/prompts/*.md; do
   ln -sf "$(pwd)/$f" ~/.pi/agent/prompts/$(basename "$f")
@@ -54,119 +67,131 @@ done
 
 ## Security Model
 
-This tool executes a separate `pi` subprocess with a delegated system prompt and tool/model configuration.
+This tool executes a separate `pi` subprocess with delegated system prompts, model/tool settings, and working directory.
 
-**Project-local agents** (`.pi/agents/*.md`) are repo-controlled prompts that can instruct the model to read files, run bash commands, etc.
+Project-local agents (`.pi/agents/*.md`) are repo-controlled prompts.
 
-**Default behavior:** Only loads **user-level agents** from `~/.pi/agent/agents`.
+- **Default scope**: user-level agents (`~/.pi/agent/agents`)
+- To enable project agents, set `agentScope: "both"` or `"project"`
+- Interactive runs prompt for confirmation before project agents (configurable)
 
-To enable project-local agents, pass `agentScope: "both"` (or `"project"`). Only do this for repositories you trust.
+## Agent Frontmatter
 
-When running interactively, the tool prompts for confirmation before running project-local agents. Set `confirmProjectAgents: false` to disable.
+Agents are markdown files with YAML frontmatter:
 
-## Usage
+```markdown
+---
+name: worker
+description: General-purpose implementation agent
+tools: read, edit, write, bash
+disallowedTools: bash
+model: claude-sonnet-4-5
+thinking: high
+mode: write
+writePaths: src/**, test/**
+isolation: worktree
+timeoutMs: 120000
+useProactively: true
+---
 
-### Single agent
+System prompt body...
 ```
-Use scout to find all authentication code
-```
 
-### Parallel execution
-```
-Run 2 scouts in parallel: one to find models, one to find providers
-```
+### Fields
 
-### Chained workflow
-```
-Use a chain: first have scout find the read tool, then have planner suggest improvements
-```
-
-### Workflow prompts
-```
-/implement add Redis caching to the session store
-/scout-and-plan refactor auth to support OAuth
-/implement-and-review add input validation to API endpoints
-```
+- `name` (required)
+- `description` (required)
+- `tools` (optional)
+- `disallowedTools` (optional)
+- `model` (optional)
+- `thinking` (optional): `off|minimal|low|medium|high|xhigh`
+- `mode` (optional): `read|write|auto`
+- `writePaths` (optional): list or comma-separated globs
+- `isolation` (optional): `none|worktree`
+- `timeoutMs` (optional)
+- `useProactively` (optional boolean)
 
 ## Tool Modes
 
 | Mode | Parameter | Description |
 |------|-----------|-------------|
 | Single | `{ agent, task }` | One agent, one task |
-| Parallel | `{ tasks: [...] }` | Multiple agents run concurrently (max 8, 4 concurrent) |
+| Parallel | `{ tasks: [...] }` | Scheduler builds safe execution waves |
 | Chain | `{ chain: [...] }` | Sequential with `{previous}` placeholder |
 
-## Output Display
+## Task Overrides
 
-**Collapsed view** (default):
-- Status icon (✓/✗/⏳) and agent name
-- Last 5-10 items (tool calls and text)
-- Usage stats: `3 turns ↑input ↓output RcacheRead WcacheWrite $cost ctx:contextTokens model`
+All task objects support optional overrides:
 
-**Expanded view** (Ctrl+O):
-- Full task text
-- All tool calls with formatted arguments
-- Final output rendered as Markdown
-- Per-task usage (for chain/parallel)
+- `model`
+- `thinking`
+- `tools`
+- `mode`
+- `writePaths`
+- `isolation`
+- `timeoutMs`
 
-**Parallel mode streaming**:
-- Shows all tasks with live status (⏳ running, ✓ done, ✗ failed)
-- Updates as each task makes progress
-- Shows "2/3 done, 1 running" status
+Top-level policy override:
 
-**Tool call formatting** (mimics built-in tools):
-- `$ command` for bash
-- `read ~/path:1-10` for read
-- `grep /pattern/ in ~/path` for grep
-- etc.
+- `onWriteConflict`: `serialize` (default) or `fail`
 
-## Agent Definitions
+## Worktree Behavior
 
-Agents are markdown files with YAML frontmatter:
+Write-capable + `isolation: worktree` tasks:
 
-```markdown
----
-name: my-agent
-description: What this agent does
-tools: read, grep, find, ls
-model: claude-haiku-4-5
----
+1. detect git repo root
+2. create temporary worktree
+3. run task in isolated cwd
+4. collect `git diff --binary`
+5. apply patch to main checkout (`git apply --3way`)
+6. cleanup successful worktrees; optionally keep failed ones
 
-System prompt for the agent goes here.
-```
+Fallbacks:
 
-**Locations:**
-- `~/.pi/agent/agents/*.md` - User-level (always loaded)
-- `.pi/agents/*.md` - Project-level (only with `agentScope: "project"` or `"both"`)
+- Non-git repo: runs without worktree isolation
+- Worktree creation failure: falls back to normal cwd with warning in result stderr/details
 
-Project agents override user agents with the same name when `agentScope: "both"`.
+## Auto-Delegation Mode
 
-## Sample Agents
+- `/subagent-mode off|assist|orchestrate`
+- `--subagent-mode off|assist|orchestrate`
 
-| Agent | Purpose | Model | Tools |
-|-------|---------|-------|-------|
-| `scout` | Fast codebase recon | Haiku | read, grep, find, ls, bash |
-| `planner` | Implementation plans | Sonnet | read, grep, find, ls |
-| `reviewer` | Code review | Sonnet | read, grep, find, ls, bash |
-| `worker` | General-purpose | Sonnet | (all default) |
+Modes:
 
-## Workflow Prompts
+- `off`: no extra delegation guidance
+- `assist`: guidance only for complex/high-context-pressure prompts
+- `orchestrate`: stronger guidance to delegate non-trivial work
 
-| Prompt | Flow |
-|--------|------|
-| `/implement <query>` | scout → planner → worker |
-| `/scout-and-plan <query>` | scout → planner |
-| `/implement-and-review <query>` | worker → reviewer → worker |
+## Config Files
 
-## Error Handling
+Config is layered (project overrides user):
 
-- **Exit code != 0**: Tool returns error with stderr/output
-- **stopReason "error"**: LLM error propagated with error message
-- **stopReason "aborted"**: User abort (Ctrl+C) kills subprocess, throws error
-- **Chain mode**: Stops at first failing step, reports which step failed
+- `~/.pi/agent/subagents.json`
+- nearest `.pi/subagents.json`
 
-## Limitations
+Supported keys:
 
-- Output truncated to last 10 items in collapsed view (expand to see all)
-- Agents discovered fresh on each invocation (allows editing mid-session)
-- Parallel mode limited to 8 tasks, 4 concurrent
+- `maxParallelTasks`
+- `maxConcurrency`
+- `collapsedItemCount`
+- `contentMaxChars`
+- `onWriteConflict`
+- `taskTimeoutMs`
+- `cleanupWorktreesOnSuccess`
+- `keepFailedWorktrees`
+- `pruneWorktreesOnFinish`
+- `autoDelegationDefault`
+- `confirmProjectAgents`
+- `artifactDir`
+
+## Output Contract
+
+- `content`: curated compact summary (bounded by `contentMaxChars`)
+- `details`: full per-task telemetry (messages, usage, patch/worktree metadata)
+- optional JSON artifact under `artifactDir` (default `.pi/subagent-runs`)
+
+## Notes
+
+- Agent discovery happens on every invocation (edits are picked up immediately)
+- Scheduler is conservative for unknown write scopes
+- Parallel limits are configurable and validated at runtime

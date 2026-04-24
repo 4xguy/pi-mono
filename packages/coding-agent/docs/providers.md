@@ -44,7 +44,7 @@ Use `/logout` to clear credentials. Tokens are stored in `~/.pi/agent/auth.json`
 
 ### Environment Variables or Auth File
 
-Set via environment variable:
+Use `/login` in interactive mode and select a provider to store an API key in `auth.json`, or set credentials via environment variable:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -56,6 +56,7 @@ pi
 | Anthropic | `ANTHROPIC_API_KEY` | `anthropic` |
 | Azure OpenAI Responses | `AZURE_OPENAI_API_KEY` | `azure-openai-responses` |
 | OpenAI | `OPENAI_API_KEY` | `openai` |
+| DeepSeek | `DEEPSEEK_API_KEY` | `deepseek` |
 | Google Gemini | `GEMINI_API_KEY` | `google` |
 | Mistral | `MISTRAL_API_KEY` | `mistral` |
 | Groq | `GROQ_API_KEY` | `groq` |
@@ -65,7 +66,9 @@ pi
 | Vercel AI Gateway | `AI_GATEWAY_API_KEY` | `vercel-ai-gateway` |
 | ZAI | `ZAI_API_KEY` | `zai` |
 | OpenCode Zen | `OPENCODE_API_KEY` | `opencode` |
+| OpenCode Go | `OPENCODE_API_KEY` | `opencode-go` |
 | Hugging Face | `HF_TOKEN` | `huggingface` |
+| Fireworks | `FIREWORKS_API_KEY` | `fireworks` |
 | Kimi For Coding | `KIMI_API_KEY` | `kimi-coding` |
 | MiniMax | `MINIMAX_API_KEY` | `minimax` |
 | MiniMax (China) | `MINIMAX_CN_API_KEY` | `minimax-cn` |
@@ -80,8 +83,10 @@ Store credentials in `~/.pi/agent/auth.json`:
 {
   "anthropic": { "type": "api_key", "key": "sk-ant-..." },
   "openai": { "type": "api_key", "key": "sk-..." },
+  "deepseek": { "type": "api_key", "key": "sk-..." },
   "google": { "type": "api_key", "key": "..." },
-  "opencode": { "type": "api_key", "key": "..." }
+  "opencode": { "type": "api_key", "key": "..." },
+  "opencode-go": { "type": "api_key", "key": "..." }
 }
 ```
 
@@ -143,6 +148,13 @@ Also supports ECS task roles (`AWS_CONTAINER_CREDENTIALS_*`) and IRSA (`AWS_WEB_
 
 ```bash
 pi --provider amazon-bedrock --model us.anthropic.claude-sonnet-4-20250514-v1:0
+```
+
+Prompt caching is enabled automatically for Claude models whose ID contains a recognizable model name (base models and system-defined inference profiles). For application inference profiles (whose ARNs don't contain the model name), set `AWS_BEDROCK_FORCE_CACHE=1` to enable cache points:
+
+```bash
+export AWS_BEDROCK_FORCE_CACHE=1
+pi --provider amazon-bedrock --model arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/abc123
 ```
 
 If you are connecting to a Bedrock API proxy, the following environment variables can be used:

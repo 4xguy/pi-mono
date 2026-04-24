@@ -41,7 +41,9 @@ Edit directly or use `/settings` for common options.
 | `theme` | string | `"dark"` | Theme name (`"dark"`, `"light"`, or custom) |
 | `quietStartup` | boolean | `false` | Hide startup header |
 | `collapseChangelog` | boolean | `false` | Show condensed changelog after updates |
+| `enableInstallTelemetry` | boolean | `true` | Send an anonymous version/update ping after changelog-detected updates |
 | `doubleEscapeAction` | string | `"tree"` | Action for double-escape: `"tree"`, `"fork"`, or `"none"` |
+| `treeFilterMode` | string | `"default"` | Default filter for `/tree`: `"default"`, `"no-tools"`, `"user-only"`, `"labeled-only"`, `"all"` |
 | `editorPaddingX` | number | `0` | Horizontal padding for input editor (0-3) |
 | `autocompleteMaxVisible` | number | `5` | Max visible items in autocomplete dropdown (3-20) |
 | `showHardwareCursor` | boolean | `false` | Show terminal cursor |
@@ -69,17 +71,20 @@ Edit directly or use `/settings` for common options.
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `branchSummary.reserveTokens` | number | `16384` | Tokens reserved for branch summarization |
+| `branchSummary.skipPrompt` | boolean | `false` | Skip "Summarize branch?" prompt on `/tree` navigation (defaults to no summary) |
 
 ### Retry
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `retry.enabled` | boolean | `true` | Enable automatic retry on transient errors |
-| `retry.maxRetries` | number | `3` | Maximum retry attempts |
-| `retry.baseDelayMs` | number | `2000` | Base delay for exponential backoff (2s, 4s, 8s) |
-| `retry.maxDelayMs` | number | `60000` | Max server-requested delay before failing (60s) |
+| `retry.enabled` | boolean | `true` | Enable automatic agent-level retry on transient errors |
+| `retry.maxRetries` | number | `3` | Maximum agent-level retry attempts |
+| `retry.baseDelayMs` | number | `2000` | Base delay for agent-level exponential backoff (2s, 4s, 8s) |
+| `retry.provider.timeoutMs` | number | SDK default | Provider/SDK request timeout in milliseconds |
+| `retry.provider.maxRetries` | number | SDK default | Provider/SDK retry attempts |
+| `retry.provider.maxRetryDelayMs` | number | `60000` | Max server-requested delay before failing (60s) |
 
-When a provider requests a retry delay longer than `maxDelayMs` (e.g., Google's "quota will reset after 5h"), the request fails immediately with an informative error instead of waiting silently. Set to `0` to disable the cap.
+When a provider requests a retry delay longer than `retry.provider.maxRetryDelayMs` (e.g., Google's "quota will reset after 5h"), the request fails immediately with an informative error instead of waiting silently. Set to `0` to disable the cap.
 
 ```json
 {
@@ -87,7 +92,11 @@ When a provider requests a retry delay longer than `maxDelayMs` (e.g., Google's 
     "enabled": true,
     "maxRetries": 3,
     "baseDelayMs": 2000,
-    "maxDelayMs": 60000
+    "provider": {
+      "timeoutMs": 3600000,
+      "maxRetries": 0,
+      "maxRetryDelayMs": 60000
+    }
   }
 }
 ```
@@ -105,6 +114,7 @@ When a provider requests a retry delay longer than `maxDelayMs` (e.g., Google's 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `terminal.showImages` | boolean | `true` | Show images in terminal (if supported) |
+| `terminal.imageWidthCells` | number | `60` | Preferred inline image width in terminal cells |
 | `terminal.clearOnShrink` | boolean | `false` | Clear empty rows when content shrinks (can cause flicker) |
 | `images.autoResize` | boolean | `true` | Resize images to 2000x2000 max |
 | `images.blockImages` | boolean | `false` | Block all images from being sent to LLM |
@@ -115,6 +125,27 @@ When a provider requests a retry delay longer than `maxDelayMs` (e.g., Google's 
 |---------|------|---------|-------------|
 | `shellPath` | string | - | Custom shell path (e.g., for Cygwin on Windows) |
 | `shellCommandPrefix` | string | - | Prefix for every bash command (e.g., `"shopt -s expand_aliases"`) |
+| `npmCommand` | string[] | - | Command argv used for npm package lookup/install operations (e.g., `["mise", "exec", "node@20", "--", "npm"]`) |
+
+```json
+{
+  "npmCommand": ["mise", "exec", "node@20", "--", "npm"]
+}
+```
+
+`npmCommand` is used for all npm package-manager operations, including `npm root -g`, installs, uninstalls, and dependency installs inside git packages. Use argv-style entries exactly as the process should be launched. When `npmCommand` is configured, git package dependency installs use plain `install` to avoid npm-specific flags in wrappers or alternate package managers.
+
+### Sessions
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `sessionDir` | string | - | Directory where session files are stored. Accepts absolute or relative paths, plus `~`. |
+
+```json
+{ "sessionDir": ".pi/sessions" }
+```
+
+When multiple sources specify a session directory, `--session-dir` CLI flag takes precedence over `sessionDir` in settings.json.
 
 ### Model Cycling
 

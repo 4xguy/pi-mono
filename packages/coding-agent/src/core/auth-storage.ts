@@ -7,14 +7,13 @@
  */
 
 import {
+	findEnvKeys,
 	getEnvApiKey,
-	getOAuthApiKey,
-	getOAuthProvider,
-	getOAuthProviders,
 	type OAuthCredentials,
 	type OAuthLoginCallbacks,
 	type OAuthProviderId,
 } from "@mariozechner/pi-ai";
+import { getOAuthApiKey, getOAuthProvider, getOAuthProviders } from "@mariozechner/pi-ai/oauth";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import lockfile from "proper-lockfile";
@@ -33,6 +32,12 @@ export type OAuthCredential = {
 export type AuthCredential = ApiKeyCredential | OAuthCredential;
 
 export type AuthStorageData = Record<string, AuthCredential>;
+
+export type AuthStatus = {
+	configured: boolean;
+	source?: "stored" | "runtime" | "environment" | "fallback" | "models_json_key" | "models_json_command";
+	label?: string;
+};
 
 type LockResult<T> = {
 	result: T;
@@ -61,13 +66,40 @@ export class FileAuthStorageBackend implements AuthStorageBackend {
 		}
 	}
 
+	private acquireLockSyncWithRetry(path: string): () => void {
+		const maxAttempts = 10;
+		const delayMs = 20;
+		let lastError: unknown;
+
+		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+			try {
+				return lockfile.lockSync(path, { realpath: false });
+			} catch (error) {
+				const code =
+					typeof error === "object" && error !== null && "code" in error
+						? String((error as { code?: unknown }).code)
+						: undefined;
+				if (code !== "ELOCKED" || attempt === maxAttempts) {
+					throw error;
+				}
+				lastError = error;
+				const start = Date.now();
+				while (Date.now() - start < delayMs) {
+					// Sleep synchronously to avoid changing callers to async.
+				}
+			}
+		}
+
+		throw (lastError as Error) ?? new Error("Failed to acquire auth storage lock");
+	}
+
 	withLock<T>(fn: (current: string | undefined) => LockResult<T>): T {
 		this.ensureParentDir();
 		this.ensureFileExists();
 
 		let release: (() => void) | undefined;
 		try {
-			release = lockfile.lockSync(this.authPath, { realpath: false });
+			release = this.acquireLockSyncWithRetry(this.authPath);
 			const current = existsSync(this.authPath) ? readFileSync(this.authPath, "utf-8") : undefined;
 			const { result, next } = fn(current);
 			if (next !== undefined) {
@@ -305,6 +337,30 @@ export class AuthStorage {
 	}
 
 	/**
+	 * Return auth status without exposing credential values or refreshing tokens.
+	 */
+	getAuthStatus(provider: string): AuthStatus {
+		if (this.data[provider]) {
+			return { configured: true, source: "stored" };
+		}
+
+		if (this.runtimeOverrides.has(provider)) {
+			return { configured: false, source: "runtime", label: "--api-key" };
+		}
+
+		const envKeys = findEnvKeys(provider);
+		if (envKeys?.[0]) {
+			return { configured: false, source: "environment", label: envKeys[0] };
+		}
+
+		if (this.fallbackResolver?.(provider)) {
+			return { configured: false, source: "fallback", label: "custom provider config" };
+		}
+
+		return { configured: false };
+	}
+
+	/**
 	 * Get all credentials (for passing to getOAuthApiKey).
 	 */
 	getAll(): AuthStorageData {
@@ -396,7 +452,7 @@ export class AuthStorage {
 	 * 4. Environment variable
 	 * 5. Fallback resolver (models.json custom providers)
 	 */
-	async getApiKey(providerId: string): Promise<string | undefined> {
+	async getApiKey(providerId: string, options?: { includeFallback?: boolean }): Promise<string | undefined> {
 		// Runtime override takes highest priority
 		const runtimeKey = this.runtimeOverrides.get(providerId);
 		if (runtimeKey) {
@@ -452,7 +508,11 @@ export class AuthStorage {
 		if (envKey) return envKey;
 
 		// Fall back to custom resolver (e.g., models.json custom providers)
-		return this.fallbackResolver?.(providerId) ?? undefined;
+		if (options?.includeFallback !== false) {
+			return this.fallbackResolver?.(providerId) ?? undefined;
+		}
+
+		return undefined;
 	}
 
 	/**

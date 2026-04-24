@@ -18,7 +18,7 @@ import { AgentSession } from "../src/core/agent-session.js";
 import { ModelRegistry } from "../src/core/model-registry.js";
 import { SessionManager } from "../src/core/session-manager.js";
 import { SettingsManager } from "../src/core/settings-manager.js";
-import { codingTools } from "../src/core/tools/index.js";
+import { createCodingTools } from "../src/core/tools/index.js";
 import {
 	API_KEY,
 	createTestResourceLoader,
@@ -70,7 +70,7 @@ describe.skipIf(!HAS_ANTIGRAVITY_AUTH)("Compaction with thinking models (Antigra
 			initialState: {
 				model,
 				systemPrompt: "You are a helpful assistant. Be concise.",
-				tools: codingTools,
+				tools: createCodingTools(process.cwd()),
 				thinkingLevel,
 			},
 		});
@@ -81,7 +81,7 @@ describe.skipIf(!HAS_ANTIGRAVITY_AUTH)("Compaction with thinking models (Antigra
 		// settingsManager.applyOverrides({ compaction: { keepRecentTokens: 1 } });
 
 		const authStorage = getRealAuthStorage();
-		const modelRegistry = new ModelRegistry(authStorage);
+		const modelRegistry = ModelRegistry.create(authStorage);
 
 		session = new AgentSession({
 			agent,
@@ -168,7 +168,7 @@ describe.skipIf(!HAS_ANTHROPIC_AUTH)("Compaction with thinking models (Anthropic
 			initialState: {
 				model,
 				systemPrompt: "You are a helpful assistant. Be concise.",
-				tools: codingTools,
+				tools: createCodingTools(process.cwd()),
 				thinkingLevel,
 			},
 		});
@@ -177,7 +177,7 @@ describe.skipIf(!HAS_ANTHROPIC_AUTH)("Compaction with thinking models (Anthropic
 		const settingsManager = SettingsManager.create(tempDir, tempDir);
 
 		const authStorage = getRealAuthStorage();
-		const modelRegistry = new ModelRegistry(authStorage);
+		const modelRegistry = ModelRegistry.create(authStorage);
 
 		session = new AgentSession({
 			agent,
@@ -193,8 +193,8 @@ describe.skipIf(!HAS_ANTHROPIC_AUTH)("Compaction with thinking models (Anthropic
 		return session;
 	}
 
-	it("should compact successfully with claude-3-7-sonnet and thinking level high", async () => {
-		const model = getModel("anthropic", "claude-3-7-sonnet-latest")!;
+	it("should compact successfully with claude-sonnet-4-5 and thinking level high", async () => {
+		const model = getModel("anthropic", "claude-sonnet-4-5")!;
 		createSession(model, "high");
 
 		// Send a simple prompt

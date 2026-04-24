@@ -10,24 +10,34 @@ function createTestTUI(cols = 80, rows = 24): TUI {
 	return new TUI(new VirtualTerminal(cols, rows));
 }
 
+async function flushAutocomplete(): Promise<void> {
+	await Promise.resolve();
+	await new Promise((resolve) => setImmediate(resolve));
+}
+
 describe("Editor slash autocomplete tab behavior", () => {
-	it("shows argument completions immediately after tab-completing a slash command name", () => {
+	it("shows argument completions immediately after tab-completing a slash command name", async () => {
 		const editor = new Editor(createTestTUI(), defaultEditorTheme);
-		const provider = new CombinedAutocompleteProvider([
-			{
-				name: "memory-mode",
-				description: "Set memory mode",
-				getArgumentCompletions: (prefix: string) => {
-					const options = ["auto", "strict", "off"];
-					const normalized = prefix.trim().toLowerCase();
-					const filtered = normalized.length ? options.filter((option) => option.startsWith(normalized)) : options;
-					return filtered.map((option) => ({
-						value: option,
-						label: option,
-					}));
+		const provider = new CombinedAutocompleteProvider(
+			[
+				{
+					name: "memory-mode",
+					description: "Set memory mode",
+					getArgumentCompletions: (prefix: string) => {
+						const options = ["auto", "strict", "off"];
+						const normalized = prefix.trim().toLowerCase();
+						const filtered = normalized.length
+							? options.filter((option) => option.startsWith(normalized))
+							: options;
+						return filtered.map((option) => ({
+							value: option,
+							label: option,
+						}));
+					},
 				},
-			},
-		]);
+			],
+			"/tmp",
+		);
 		editor.setAutocompleteProvider(provider);
 
 		for (const ch of "/memory-m") {
@@ -35,13 +45,16 @@ describe("Editor slash autocomplete tab behavior", () => {
 		}
 
 		editor.handleInput("\t");
+		await flushAutocomplete();
 		assert.strictEqual(editor.isShowingAutocomplete(), true);
 
 		editor.handleInput("\t");
+		await flushAutocomplete();
 		assert.strictEqual(editor.getText(), "/memory-mode ");
 		assert.strictEqual(editor.isShowingAutocomplete(), true);
 
 		editor.handleInput("\t");
+		await flushAutocomplete();
 		assert.strictEqual(editor.getText(), "/memory-mode auto");
 		assert.strictEqual(editor.isShowingAutocomplete(), false);
 	});

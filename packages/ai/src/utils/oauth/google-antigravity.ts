@@ -7,12 +7,15 @@
  */
 
 import type { Server } from "node:http";
+import { oauthErrorHtml, oauthSuccessHtml } from "./oauth-page.js";
 import { generatePKCE } from "./pkce.js";
 import type { OAuthCredentials, OAuthLoginCallbacks, OAuthProviderInterface } from "./types.js";
 
 type AntigravityCredentials = OAuthCredentials & {
 	projectId: string;
 };
+
+const CALLBACK_HOST = process.env.PI_OAUTH_CALLBACK_HOST || "127.0.0.1";
 
 let _createServer: typeof import("node:http").createServer | null = null;
 let _httpImportPromise: Promise<void> | null = null;
@@ -67,8 +70,15 @@ async function startCallbackServer(): Promise<CallbackServerInfo> {
 	const createServer = await getNodeCreateServer();
 
 	return new Promise((resolve, reject) => {
-		let result: { code: string; state: string } | null = null;
-		let cancelled = false;
+		let settleWait: ((value: { code: string; state: string } | null) => void) | undefined;
+		const waitForCodePromise = new Promise<{ code: string; state: string } | null>((resolveWait) => {
+			let settled = false;
+			settleWait = (value) => {
+				if (settled) return;
+				settled = true;
+				resolveWait(value);
+			};
+		});
 
 		const server = createServer((req, res) => {
 			const url = new URL(req.url || "", `http://localhost:51121`);
@@ -79,28 +89,22 @@ async function startCallbackServer(): Promise<CallbackServerInfo> {
 				const error = url.searchParams.get("error");
 
 				if (error) {
-					res.writeHead(400, { "Content-Type": "text/html" });
-					res.end(
-						`<html><body><h1>Authentication Failed</h1><p>Error: ${error}</p><p>You can close this window.</p></body></html>`,
-					);
+					res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" });
+					res.end(oauthErrorHtml("Google authentication did not complete.", `Error: ${error}`));
 					return;
 				}
 
 				if (code && state) {
-					res.writeHead(200, { "Content-Type": "text/html" });
-					res.end(
-						`<html><body><h1>Authentication Successful</h1><p>You can close this window and return to the terminal.</p></body></html>`,
-					);
-					result = { code, state };
+					res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+					res.end(oauthSuccessHtml("Google authentication completed. You can close this window."));
+					settleWait?.({ code, state });
 				} else {
-					res.writeHead(400, { "Content-Type": "text/html" });
-					res.end(
-						`<html><body><h1>Authentication Failed</h1><p>Missing code or state parameter.</p></body></html>`,
-					);
+					res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" });
+					res.end(oauthErrorHtml("Missing code or state parameter."));
 				}
 			} else {
-				res.writeHead(404);
-				res.end();
+				res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
+				res.end(oauthErrorHtml("Callback route not found."));
 			}
 		});
 
@@ -108,19 +112,13 @@ async function startCallbackServer(): Promise<CallbackServerInfo> {
 			reject(err);
 		});
 
-		server.listen(51121, "127.0.0.1", () => {
+		server.listen(51121, CALLBACK_HOST, () => {
 			resolve({
 				server,
 				cancelWait: () => {
-					cancelled = true;
+					settleWait?.(null);
 				},
-				waitForCode: async () => {
-					const sleep = () => new Promise((r) => setTimeout(r, 100));
-					while (!result && !cancelled) {
-						await sleep();
-					}
-					return result;
-				},
+				waitForCode: () => waitForCodePromise,
 			});
 		});
 	});

@@ -5,6 +5,7 @@ import {
 	getCapabilities,
 	type SelectItem,
 	SelectList,
+	type SelectListLayoutOptions,
 	type SettingItem,
 	SettingsList,
 	Spacer,
@@ -12,6 +13,11 @@ import {
 } from "@mariozechner/pi-tui";
 import { getSelectListTheme, getSettingsListTheme, theme } from "../theme/theme.js";
 import { DynamicBorder } from "./dynamic-border.js";
+
+const SETTINGS_SUBMENU_SELECT_LIST_LAYOUT: SelectListLayoutOptions = {
+	minPrimaryColumnWidth: 12,
+	maxPrimaryColumnWidth: 32,
+};
 
 const THINKING_DESCRIPTIONS: Record<ThinkingLevel, string> = {
 	off: "No reasoning",
@@ -25,6 +31,7 @@ const THINKING_DESCRIPTIONS: Record<ThinkingLevel, string> = {
 export interface SettingsConfig {
 	autoCompact: boolean;
 	showImages: boolean;
+	imageWidthCells: number;
 	autoResizeImages: boolean;
 	blockImages: boolean;
 	enableSkillCommands: boolean;
@@ -37,17 +44,21 @@ export interface SettingsConfig {
 	availableThemes: string[];
 	hideThinkingBlock: boolean;
 	collapseChangelog: boolean;
+	enableInstallTelemetry: boolean;
 	doubleEscapeAction: "fork" | "tree" | "none";
+	treeFilterMode: "default" | "no-tools" | "user-only" | "labeled-only" | "all";
 	showHardwareCursor: boolean;
 	editorPaddingX: number;
 	autocompleteMaxVisible: number;
 	quietStartup: boolean;
 	clearOnShrink: boolean;
+	showTerminalProgress: boolean;
 }
 
 export interface SettingsCallbacks {
 	onAutoCompactChange: (enabled: boolean) => void;
 	onShowImagesChange: (enabled: boolean) => void;
+	onImageWidthCellsChange: (width: number) => void;
 	onAutoResizeImagesChange: (enabled: boolean) => void;
 	onBlockImagesChange: (blocked: boolean) => void;
 	onEnableSkillCommandsChange: (enabled: boolean) => void;
@@ -59,12 +70,15 @@ export interface SettingsCallbacks {
 	onThemePreview?: (theme: string) => void;
 	onHideThinkingBlockChange: (hidden: boolean) => void;
 	onCollapseChangelogChange: (collapsed: boolean) => void;
+	onEnableInstallTelemetryChange: (enabled: boolean) => void;
 	onDoubleEscapeActionChange: (action: "fork" | "tree" | "none") => void;
+	onTreeFilterModeChange: (mode: "default" | "no-tools" | "user-only" | "labeled-only" | "all") => void;
 	onShowHardwareCursorChange: (enabled: boolean) => void;
 	onEditorPaddingXChange: (padding: number) => void;
 	onAutocompleteMaxVisibleChange: (maxVisible: number) => void;
 	onQuietStartupChange: (enabled: boolean) => void;
 	onClearOnShrinkChange: (enabled: boolean) => void;
+	onShowTerminalProgressChange: (enabled: boolean) => void;
 	onCancel: () => void;
 }
 
@@ -98,7 +112,12 @@ class SelectSubmenu extends Container {
 		this.addChild(new Spacer(1));
 
 		// Select list
-		this.selectList = new SelectList(options, Math.min(options.length, 10), getSelectListTheme());
+		this.selectList = new SelectList(
+			options,
+			Math.min(options.length, 10),
+			getSelectListTheme(),
+			SETTINGS_SUBMENU_SELECT_LIST_LAYOUT,
+		);
 
 		// Pre-select current value
 		const currentIndex = options.findIndex((o) => o.value === currentValue);
@@ -194,11 +213,25 @@ export class SettingsSelectorComponent extends Container {
 				values: ["true", "false"],
 			},
 			{
+				id: "install-telemetry",
+				label: "Install telemetry",
+				description: "Send an anonymous version/update ping after changelog-detected updates",
+				currentValue: config.enableInstallTelemetry ? "true" : "false",
+				values: ["true", "false"],
+			},
+			{
 				id: "double-escape-action",
 				label: "Double-escape action",
 				description: "Action when pressing Escape twice with empty editor",
 				currentValue: config.doubleEscapeAction,
 				values: ["tree", "fork", "none"],
+			},
+			{
+				id: "tree-filter-mode",
+				label: "Tree filter mode",
+				description: "Default filter when opening /tree",
+				currentValue: config.treeFilterMode,
+				values: ["default", "no-tools", "user-only", "labeled-only", "all"],
 			},
 			{
 				id: "thinking",
@@ -263,10 +296,17 @@ export class SettingsSelectorComponent extends Container {
 				currentValue: config.showImages ? "true" : "false",
 				values: ["true", "false"],
 			});
+			items.splice(2, 0, {
+				id: "image-width-cells",
+				label: "Image width",
+				description: "Preferred inline image width in terminal cells",
+				currentValue: String(config.imageWidthCells),
+				values: ["60", "80", "120"],
+			});
 		}
 
 		// Image auto-resize toggle (always available, affects both attached and read images)
-		items.splice(supportsImages ? 2 : 1, 0, {
+		items.splice(supportsImages ? 3 : 1, 0, {
 			id: "auto-resize-images",
 			label: "Auto-resize images",
 			description: "Resize large images to 2000x2000 max for better model compatibility",
@@ -334,6 +374,16 @@ export class SettingsSelectorComponent extends Container {
 			values: ["true", "false"],
 		});
 
+		// Terminal progress toggle (insert after clear-on-shrink)
+		const clearOnShrinkIndex = items.findIndex((item) => item.id === "clear-on-shrink");
+		items.splice(clearOnShrinkIndex + 1, 0, {
+			id: "terminal-progress",
+			label: "Terminal progress",
+			description: "Show OSC 9;4 progress indicators in the terminal tab bar",
+			currentValue: config.showTerminalProgress ? "true" : "false",
+			values: ["true", "false"],
+		});
+
 		// Add borders
 		this.addChild(new DynamicBorder());
 
@@ -348,6 +398,9 @@ export class SettingsSelectorComponent extends Container {
 						break;
 					case "show-images":
 						callbacks.onShowImagesChange(newValue === "true");
+						break;
+					case "image-width-cells":
+						callbacks.onImageWidthCellsChange(parseInt(newValue, 10));
 						break;
 					case "auto-resize-images":
 						callbacks.onAutoResizeImagesChange(newValue === "true");
@@ -376,8 +429,16 @@ export class SettingsSelectorComponent extends Container {
 					case "quiet-startup":
 						callbacks.onQuietStartupChange(newValue === "true");
 						break;
+					case "install-telemetry":
+						callbacks.onEnableInstallTelemetryChange(newValue === "true");
+						break;
 					case "double-escape-action":
 						callbacks.onDoubleEscapeActionChange(newValue as "fork" | "tree");
+						break;
+					case "tree-filter-mode":
+						callbacks.onTreeFilterModeChange(
+							newValue as "default" | "no-tools" | "user-only" | "labeled-only" | "all",
+						);
 						break;
 					case "show-hardware-cursor":
 						callbacks.onShowHardwareCursorChange(newValue === "true");
@@ -390,6 +451,9 @@ export class SettingsSelectorComponent extends Container {
 						break;
 					case "clear-on-shrink":
 						callbacks.onClearOnShrinkChange(newValue === "true");
+						break;
+					case "terminal-progress":
+						callbacks.onShowTerminalProgressChange(newValue === "true");
 						break;
 				}
 			},

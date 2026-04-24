@@ -1,5 +1,6 @@
 import type { Transport } from "@mariozechner/pi-ai";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { homedir } from "os";
 import { dirname, join } from "path";
 import lockfile from "proper-lockfile";
 import { CONFIG_DIR_NAME, getAgentDir } from "../config.js";
@@ -12,18 +13,27 @@ export interface CompactionSettings {
 
 export interface BranchSummarySettings {
 	reserveTokens?: number; // default: 16384 (tokens reserved for prompt + LLM response)
+	skipPrompt?: boolean; // default: false - when true, skips "Summarize branch?" prompt and defaults to no summary
+}
+
+export interface ProviderRetrySettings {
+	timeoutMs?: number; // SDK/provider request timeout in milliseconds
+	maxRetries?: number; // SDK/provider retry attempts
+	maxRetryDelayMs?: number; // default: 60000 (max server-requested delay before failing)
 }
 
 export interface RetrySettings {
 	enabled?: boolean; // default: true
 	maxRetries?: number; // default: 3
 	baseDelayMs?: number; // default: 2000 (exponential backoff: 2s, 4s, 8s)
-	maxDelayMs?: number; // default: 60000 (max server-requested delay before failing)
+	provider?: ProviderRetrySettings;
 }
 
 export interface TerminalSettings {
 	showImages?: boolean; // default: true (only relevant if terminal supports images)
+	imageWidthCells?: number; // default: 60 (preferred inline image width in terminal cells)
 	clearOnShrink?: boolean; // default: false (clear empty rows when content shrinks)
+	showTerminalProgress?: boolean; // default: false (OSC 9;4 terminal progress indicators)
 }
 
 export interface ImageSettings {
@@ -75,7 +85,9 @@ export interface Settings {
 	shellPath?: string; // Custom shell path (e.g., for Cygwin users on Windows)
 	quietStartup?: boolean;
 	shellCommandPrefix?: string; // Prefix prepended to every bash command (e.g., "shopt -s expand_aliases" for alias support)
+	npmCommand?: string[]; // Command used for npm package lookup/install operations, argv-style (e.g., ["mise", "exec", "node@20", "--", "npm"])
 	collapseChangelog?: boolean; // Show condensed changelog after update (use /changelog for full)
+	enableInstallTelemetry?: boolean; // default: true - anonymous version/update ping after changelog-detected updates
 	packages?: PackageSource[]; // Array of npm/git package sources (string or object with filtering)
 	extensions?: string[]; // Array of local extension file paths or directories
 	skills?: string[]; // Array of local skill file paths or directories
@@ -86,11 +98,13 @@ export interface Settings {
 	images?: ImageSettings;
 	enabledModels?: string[]; // Model patterns for cycling (same format as --models CLI flag)
 	doubleEscapeAction?: "fork" | "tree" | "none"; // Action for double-escape with empty editor (default: "tree")
+	treeFilterMode?: "default" | "no-tools" | "user-only" | "labeled-only" | "all"; // Default filter when opening /tree
 	thinkingBudgets?: ThinkingBudgetsSettings; // Custom token budgets for thinking levels
 	editorPaddingX?: number; // Horizontal padding for input editor (default: 0)
 	autocompleteMaxVisible?: number; // Max visible items in autocomplete dropdown (default: 5)
 	showHardwareCursor?: boolean; // Show terminal cursor while still positioning it for IME
 	markdown?: MarkdownSettings;
+	sessionDir?: string; // Custom session storage directory (same format as --session-dir CLI flag)
 }
 
 /** Deep merge settings: project/overrides take precedence, nested objects merge recursively */
@@ -139,9 +153,36 @@ export class FileSettingsStorage implements SettingsStorage {
 	private globalSettingsPath: string;
 	private projectSettingsPath: string;
 
-	constructor(cwd: string = process.cwd(), agentDir: string = getAgentDir()) {
+	constructor(cwd: string, agentDir: string) {
 		this.globalSettingsPath = join(agentDir, "settings.json");
 		this.projectSettingsPath = join(cwd, CONFIG_DIR_NAME, "settings.json");
+	}
+
+	private acquireLockSyncWithRetry(path: string): () => void {
+		const maxAttempts = 10;
+		const delayMs = 20;
+		let lastError: unknown;
+
+		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+			try {
+				return lockfile.lockSync(path, { realpath: false });
+			} catch (error) {
+				const code =
+					typeof error === "object" && error !== null && "code" in error
+						? String((error as { code?: unknown }).code)
+						: undefined;
+				if (code !== "ELOCKED" || attempt === maxAttempts) {
+					throw error;
+				}
+				lastError = error;
+				const start = Date.now();
+				while (Date.now() - start < delayMs) {
+					// Sleep synchronously to avoid changing callers to async.
+				}
+			}
+		}
+
+		throw (lastError as Error) ?? new Error("Failed to acquire settings lock");
 	}
 
 	withLock(scope: SettingsScope, fn: (current: string | undefined) => string | undefined): void {
@@ -153,7 +194,7 @@ export class FileSettingsStorage implements SettingsStorage {
 			// Only create directory and lock if file exists or we need to write
 			const fileExists = existsSync(path);
 			if (fileExists) {
-				release = lockfile.lockSync(path, { realpath: false });
+				release = this.acquireLockSyncWithRetry(path);
 			}
 			const current = fileExists ? readFileSync(path, "utf-8") : undefined;
 			const next = fn(current);
@@ -163,7 +204,7 @@ export class FileSettingsStorage implements SettingsStorage {
 					mkdirSync(dir, { recursive: true });
 				}
 				if (!release) {
-					release = lockfile.lockSync(path, { realpath: false });
+					release = this.acquireLockSyncWithRetry(path);
 				}
 				writeFileSync(path, next, "utf-8");
 			}
@@ -224,7 +265,7 @@ export class SettingsManager {
 	}
 
 	/** Create a SettingsManager that loads from files */
-	static create(cwd: string = process.cwd(), agentDir: string = getAgentDir()): SettingsManager {
+	static create(cwd: string, agentDir: string = getAgentDir()): SettingsManager {
 		const storage = new FileSettingsStorage(cwd, agentDir);
 		return SettingsManager.fromStorage(storage);
 	}
@@ -254,7 +295,9 @@ export class SettingsManager {
 	/** Create an in-memory SettingsManager (no file I/O) */
 	static inMemory(settings: Partial<Settings> = {}): SettingsManager {
 		const storage = new InMemorySettingsStorage();
-		return new SettingsManager(storage, settings, {});
+		const initialSettings = SettingsManager.migrateSettings(structuredClone(settings) as Record<string, unknown>);
+		storage.withLock("global", () => JSON.stringify(initialSettings, null, 2));
+		return SettingsManager.fromStorage(storage);
 	}
 
 	private static loadFromStorage(storage: SettingsStorage, scope: SettingsScope): Settings {
@@ -317,6 +360,30 @@ export class SettingsManager {
 			}
 		}
 
+		// Migrate retry.maxDelayMs -> retry.provider.maxRetryDelayMs
+		if (
+			"retry" in settings &&
+			typeof settings.retry === "object" &&
+			settings.retry !== null &&
+			!Array.isArray(settings.retry)
+		) {
+			const retrySettings = settings.retry as Record<string, unknown>;
+			const providerSettings =
+				typeof retrySettings.provider === "object" && retrySettings.provider !== null
+					? (retrySettings.provider as Record<string, unknown>)
+					: undefined;
+			if (
+				typeof retrySettings.maxDelayMs === "number" &&
+				(providerSettings?.maxRetryDelayMs === undefined || providerSettings?.maxRetryDelayMs === null)
+			) {
+				retrySettings.provider = {
+					...(providerSettings ?? {}),
+					maxRetryDelayMs: retrySettings.maxDelayMs,
+				};
+			}
+			delete retrySettings.maxDelayMs;
+		}
+
 		return settings as Settings;
 	}
 
@@ -328,7 +395,8 @@ export class SettingsManager {
 		return structuredClone(this.projectSettings);
 	}
 
-	reload(): void {
+	async reload(): Promise<void> {
+		await this.writeQueue;
 		const globalLoad = SettingsManager.tryLoadFromStorage(this.storage, "global");
 		if (!globalLoad.error) {
 			this.globalSettings = globalLoad.settings;
@@ -500,6 +568,20 @@ export class SettingsManager {
 		this.save();
 	}
 
+	getSessionDir(): string | undefined {
+		const sessionDir = this.settings.sessionDir;
+		if (!sessionDir) {
+			return sessionDir;
+		}
+		if (sessionDir === "~") {
+			return homedir();
+		}
+		if (sessionDir.startsWith("~/")) {
+			return join(homedir(), sessionDir.slice(2));
+		}
+		return sessionDir;
+	}
+
 	getDefaultProvider(): string | undefined {
 		return this.settings.defaultProvider;
 	}
@@ -607,10 +689,15 @@ export class SettingsManager {
 		};
 	}
 
-	getBranchSummarySettings(): { reserveTokens: number } {
+	getBranchSummarySettings(): { reserveTokens: number; skipPrompt: boolean } {
 		return {
 			reserveTokens: this.settings.branchSummary?.reserveTokens ?? 16384,
+			skipPrompt: this.settings.branchSummary?.skipPrompt ?? false,
 		};
+	}
+
+	getBranchSummarySkipPrompt(): boolean {
+		return this.settings.branchSummary?.skipPrompt ?? false;
 	}
 
 	getRetryEnabled(): boolean {
@@ -626,12 +713,19 @@ export class SettingsManager {
 		this.save();
 	}
 
-	getRetrySettings(): { enabled: boolean; maxRetries: number; baseDelayMs: number; maxDelayMs: number } {
+	getRetrySettings(): { enabled: boolean; maxRetries: number; baseDelayMs: number } {
 		return {
 			enabled: this.getRetryEnabled(),
 			maxRetries: this.settings.retry?.maxRetries ?? 3,
 			baseDelayMs: this.settings.retry?.baseDelayMs ?? 2000,
-			maxDelayMs: this.settings.retry?.maxDelayMs ?? 60000,
+		};
+	}
+
+	getProviderRetrySettings(): { timeoutMs?: number; maxRetries?: number; maxRetryDelayMs: number } {
+		return {
+			timeoutMs: this.settings.retry?.provider?.timeoutMs,
+			maxRetries: this.settings.retry?.provider?.maxRetries,
+			maxRetryDelayMs: this.settings.retry?.provider?.maxRetryDelayMs ?? 60000,
 		};
 	}
 
@@ -675,6 +769,16 @@ export class SettingsManager {
 		this.save();
 	}
 
+	getNpmCommand(): string[] | undefined {
+		return this.settings.npmCommand ? [...this.settings.npmCommand] : undefined;
+	}
+
+	setNpmCommand(command: string[] | undefined): void {
+		this.globalSettings.npmCommand = command ? [...command] : undefined;
+		this.markModified("npmCommand");
+		this.save();
+	}
+
 	getCollapseChangelog(): boolean {
 		return this.settings.collapseChangelog ?? false;
 	}
@@ -682,6 +786,16 @@ export class SettingsManager {
 	setCollapseChangelog(collapse: boolean): void {
 		this.globalSettings.collapseChangelog = collapse;
 		this.markModified("collapseChangelog");
+		this.save();
+	}
+
+	getEnableInstallTelemetry(): boolean {
+		return this.settings.enableInstallTelemetry ?? true;
+	}
+
+	setEnableInstallTelemetry(enabled: boolean): void {
+		this.globalSettings.enableInstallTelemetry = enabled;
+		this.markModified("enableInstallTelemetry");
 		this.save();
 	}
 
@@ -797,6 +911,23 @@ export class SettingsManager {
 		this.save();
 	}
 
+	getImageWidthCells(): number {
+		const width = this.settings.terminal?.imageWidthCells;
+		if (typeof width !== "number" || !Number.isFinite(width)) {
+			return 60;
+		}
+		return Math.max(1, Math.floor(width));
+	}
+
+	setImageWidthCells(width: number): void {
+		if (!this.globalSettings.terminal) {
+			this.globalSettings.terminal = {};
+		}
+		this.globalSettings.terminal.imageWidthCells = Math.max(1, Math.floor(width));
+		this.markModified("terminal", "imageWidthCells");
+		this.save();
+	}
+
 	getClearOnShrink(): boolean {
 		// Settings takes precedence, then env var, then default false
 		if (this.settings.terminal?.clearOnShrink !== undefined) {
@@ -811,6 +942,19 @@ export class SettingsManager {
 		}
 		this.globalSettings.terminal.clearOnShrink = enabled;
 		this.markModified("terminal", "clearOnShrink");
+		this.save();
+	}
+
+	getShowTerminalProgress(): boolean {
+		return this.settings.terminal?.showTerminalProgress ?? false;
+	}
+
+	setShowTerminalProgress(enabled: boolean): void {
+		if (!this.globalSettings.terminal) {
+			this.globalSettings.terminal = {};
+		}
+		this.globalSettings.terminal.showTerminalProgress = enabled;
+		this.markModified("terminal", "showTerminalProgress");
 		this.save();
 	}
 
@@ -857,6 +1001,18 @@ export class SettingsManager {
 	setDoubleEscapeAction(action: "fork" | "tree" | "none"): void {
 		this.globalSettings.doubleEscapeAction = action;
 		this.markModified("doubleEscapeAction");
+		this.save();
+	}
+
+	getTreeFilterMode(): "default" | "no-tools" | "user-only" | "labeled-only" | "all" {
+		const mode = this.settings.treeFilterMode;
+		const valid = ["default", "no-tools", "user-only", "labeled-only", "all"];
+		return mode && valid.includes(mode) ? mode : "default";
+	}
+
+	setTreeFilterMode(mode: "default" | "no-tools" | "user-only" | "labeled-only" | "all"): void {
+		this.globalSettings.treeFilterMode = mode;
+		this.markModified("treeFilterMode");
 		this.save();
 	}
 

@@ -2,6 +2,98 @@
 
 ## [Unreleased]
 
+## [0.70.2] - 2026-04-24
+
+## [0.70.1] - 2026-04-24
+
+## [0.70.0] - 2026-04-23
+
+### Fixed
+
+- Fixed Mom event-directory `fs.watch` error handling to retry after transient watcher failures such as `EMFILE`, avoiding startup crashes ([#3564](https://github.com/badlogic/pi-mono/issues/3564))
+
+## [0.69.0] - 2026-04-22
+
+### Breaking Changes
+
+- Migrated Mom's TypeBox-based tool examples and runtime dependency from `@sinclair/typebox` 0.34.x to `typebox` 1.x. Install and import from `typebox` instead of `@sinclair/typebox` when authoring Mom tools and integrations ([#3112](https://github.com/badlogic/pi-mono/issues/3112))
+
+## [0.68.1] - 2026-04-22
+
+## [0.68.0] - 2026-04-20
+
+## [0.67.68] - 2026-04-17
+
+## [0.67.67] - 2026-04-17
+
+## [0.67.6] - 2026-04-16
+
+## [0.67.5] - 2026-04-16
+
+## [0.67.4] - 2026-04-16
+
+## [0.67.3] - 2026-04-15
+
+## [0.67.2] - 2026-04-14
+
+## [0.67.1] - 2026-04-13
+
+## [0.67.0] - 2026-04-13
+
+## [0.66.1] - 2026-04-08
+
+## [0.66.0] - 2026-04-08
+
+## [0.65.2] - 2026-04-06
+
+## [0.65.1] - 2026-04-05
+
+## [0.65.0] - 2026-04-03
+
+## [0.64.0] - 2026-03-29
+
+## [0.63.2] - 2026-03-29
+
+## [0.63.1] - 2026-03-27
+
+### Fixed
+
+- Fixed Mom compaction status handling to follow the unified `compaction_start` and `compaction_end` session events, keeping compaction notifications working after the event rename ([#2617](https://github.com/badlogic/pi-mono/issues/2617))
+
+## [0.63.0] - 2026-03-27
+
+## [0.62.0] - 2026-03-23
+
+## [0.61.1] - 2026-03-20
+
+## [0.61.0] - 2026-03-20
+
+## [0.60.0] - 2026-03-18
+
+## [0.59.0] - 2026-03-17
+
+## [0.58.4] - 2026-03-16
+
+## [0.58.3] - 2026-03-15
+
+## [0.58.2] - 2026-03-15
+
+## [0.58.1] - 2026-03-14
+
+## [0.58.0] - 2026-03-14
+
+## [0.57.1] - 2026-03-07
+
+## [0.57.0] - 2026-03-07
+
+## [0.56.3] - 2026-03-06
+
+## [0.56.2] - 2026-03-05
+
+## [0.56.1] - 2026-03-05
+
+## [0.56.0] - 2026-03-04
+
 ## [0.55.4] - 2026-03-02
 
 ### Fixed

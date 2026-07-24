@@ -1,7 +1,7 @@
-import type { RunDocument } from "../contracts/run.js";
-import type { SandboxExecutionResult } from "../runtime/sandbox.js";
-import { createRuntimeService } from "./service.js";
-import type { FabricScope } from "../storage/paths.js";
+import type { RunDocument } from "../contracts/run.ts";
+import type { SandboxExecutionResult } from "../runtime/sandbox.ts";
+import { createRuntimeService } from "./service.ts";
+import type { FabricScope } from "../storage/paths.ts";
 
 export interface FabricRunOptions {
   scope?: FabricScope;

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ContractValidationError } from "../src/contracts/common.js";
+import { ContractValidationError } from "../src/contracts/common.ts";
 import {
   parseCapabilityManifestDocument,
   parseCapabilityRegistryDocument,
   parseCapabilityValidationReportDocument,
   parseRunDocument,
   parseRunEventDocument,
-} from "../src/contracts/validators.js";
+} from "../src/contracts/validators.ts";
 
 describe("contracts validators", () => {
   it("parses a valid capability manifest", () => {

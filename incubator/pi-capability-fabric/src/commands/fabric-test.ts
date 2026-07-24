@@ -1,10 +1,10 @@
 import type {
   CapabilityManifestDocument,
   CapabilityValidationReportDocument,
-} from "../contracts/capability.js";
-import type { RunDocument } from "../contracts/run.js";
-import { createFoundryService } from "./service.js";
-import type { FabricScope } from "../storage/paths.js";
+} from "../contracts/capability.ts";
+import type { RunDocument } from "../contracts/run.ts";
+import { createFoundryService } from "./service.ts";
+import type { FabricScope } from "../storage/paths.ts";
 
 export interface FabricTestOptions {
   scope?: FabricScope;

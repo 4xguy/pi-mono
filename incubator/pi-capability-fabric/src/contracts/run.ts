@@ -1,4 +1,4 @@
-import type { RunStatus, RunType, VersionedDocument } from "./common.js";
+import type { RunStatus, RunType, VersionedDocument } from "./common.ts";
 
 export interface RunWorkerInfo {
   id: string;

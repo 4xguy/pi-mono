@@ -1,18 +1,18 @@
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runFabricInit } from "../src/commands/fabric-init.js";
-import type { CapabilityManifestDocument, CapabilityRegistryEntry } from "../src/contracts/capability.js";
-import type { ProfileDocument } from "../src/contracts/profile.js";
-import type { RunDocument } from "../src/contracts/run.js";
-import type { RunEventDocument } from "../src/contracts/event.js";
-import { CapabilityRegistryRepository } from "../src/repositories/capability-registry-repo.js";
-import { ProfileRepository } from "../src/repositories/profile-repo.js";
-import { RunRepository } from "../src/repositories/run-repo.js";
-import { RegistryService } from "../src/registry/registry-service.js";
-import { getFabricPaths } from "../src/storage/paths.js";
-import { writeTextFileAtomic } from "../src/storage/files.js";
-import { encodeYaml } from "../src/storage/yaml.js";
-import { createTempDir, removeTempDir } from "./helpers.js";
+import { runFabricInit } from "../src/commands/fabric-init.ts";
+import type { CapabilityManifestDocument, CapabilityRegistryEntry } from "../src/contracts/capability.ts";
+import type { ProfileDocument } from "../src/contracts/profile.ts";
+import type { RunDocument } from "../src/contracts/run.ts";
+import type { RunEventDocument } from "../src/contracts/event.ts";
+import { CapabilityRegistryRepository } from "../src/repositories/capability-registry-repo.ts";
+import { ProfileRepository } from "../src/repositories/profile-repo.ts";
+import { RunRepository } from "../src/repositories/run-repo.ts";
+import { RegistryService } from "../src/registry/registry-service.ts";
+import { getFabricPaths } from "../src/storage/paths.ts";
+import { writeTextFileAtomic } from "../src/storage/files.ts";
+import { encodeYaml } from "../src/storage/yaml.ts";
+import { createTempDir, removeTempDir } from "./helpers.ts";
 
 const cleanupDirs: string[] = [];
 

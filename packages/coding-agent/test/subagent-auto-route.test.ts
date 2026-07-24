@@ -5,7 +5,7 @@ import {
 	parseAutoRouteCommandArguments,
 	resolveAutoRouteConfig,
 	shouldInjectAutoRoutePrompt,
-} from "../examples/extensions/subagent/auto-route.js";
+} from "../examples/extensions/subagent/auto-route.ts";
 
 describe("subagent auto route", () => {
 	it("resolves defaults and enforces coordinator-only when auto-route is enabled", () => {

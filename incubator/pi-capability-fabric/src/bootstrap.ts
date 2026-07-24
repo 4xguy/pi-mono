@@ -1,7 +1,7 @@
-import type { FabricPathOptions, FabricPaths } from "./storage/paths.js";
-import { getFabricPaths } from "./storage/paths.js";
-import { ensureDirectories } from "./storage/files.js";
-import { seedFabricFiles, type SeedResult } from "./registry/seed.js";
+import type { FabricPathOptions, FabricPaths } from "./storage/paths.ts";
+import { getFabricPaths } from "./storage/paths.ts";
+import { ensureDirectories } from "./storage/files.ts";
+import { seedFabricFiles, type SeedResult } from "./registry/seed.ts";
 
 export interface BootstrapResult {
   paths: FabricPaths;

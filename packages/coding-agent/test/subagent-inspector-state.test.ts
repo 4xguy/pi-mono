@@ -3,8 +3,8 @@ import {
 	type CoordinatorInspectorState,
 	normalizeCoordinatorInspectorState,
 	reduceCoordinatorInspectorState,
-} from "../examples/extensions/subagent/coordinator-inspector-state.js";
-import type { CoordinatorRunState } from "../examples/extensions/subagent/coordinator-monitor.js";
+} from "../examples/extensions/subagent/coordinator-inspector-state.ts";
+import type { CoordinatorRunState } from "../examples/extensions/subagent/coordinator-monitor.ts";
 
 function makeRuns(): CoordinatorRunState[] {
 	return [

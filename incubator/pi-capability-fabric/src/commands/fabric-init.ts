@@ -1,5 +1,5 @@
-import { bootstrapCapabilityFabric } from "../bootstrap.js";
-import type { FabricScope } from "../storage/paths.js";
+import { bootstrapCapabilityFabric } from "../bootstrap.ts";
+import type { FabricScope } from "../storage/paths.ts";
 
 export interface FabricInitOptions {
   scope?: FabricScope;

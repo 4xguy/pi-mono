@@ -5,7 +5,7 @@ import {
 	normalizeWritePaths,
 	schedulerTasksConflict,
 	writePathsConflict,
-} from "../examples/extensions/subagent/policy.js";
+} from "../examples/extensions/subagent/policy.ts";
 
 describe("subagent policy", () => {
 	it("detects write-capable tasks", () => {

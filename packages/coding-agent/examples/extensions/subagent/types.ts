@@ -1,6 +1,6 @@
-import type { AgentToolResult, ThinkingLevel } from "@mariozechner/pi-agent-core";
-import type { Message } from "@mariozechner/pi-ai";
-import type { AgentConfig, AgentScope } from "./agents.js";
+import type { AgentToolResult, ThinkingLevel } from "@earendil-works/pi-agent-core";
+import type { Message } from "@earendil-works/pi-ai";
+import type { AgentConfig, AgentScope } from "./agents.ts";
 
 export type SubagentExecutionMode = "single" | "parallel" | "chain";
 export type TaskMode = "read" | "write" | "auto";

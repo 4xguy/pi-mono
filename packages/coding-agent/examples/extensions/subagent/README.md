@@ -131,6 +131,12 @@ All task objects support optional overrides:
 - `isolation`
 - `timeoutMs`
 
+**Parallel mode streaming**:
+- Shows all tasks with live status (⏳ running, ✓ done, ✗ failed)
+- Updates as each task makes progress
+- Shows "2/3 done, 1 running" status
+- Returns failure diagnostics from stderr/error messages when a child exits before producing output
+
 Top-level policy override:
 
 - `onWriteConflict`: `serialize` (default) or `fail`
@@ -194,4 +200,5 @@ Supported keys:
 
 - Agent discovery happens on every invocation (edits are picked up immediately)
 - Scheduler is conservative for unknown write scopes
-- Parallel limits are configurable and validated at runtime
+- Parallel limits are configurable and validated at runtime (defaults: 8 tasks, 4 concurrent via `maxParallelTasks`/`maxConcurrency`)
+- Output truncated to last 10 items in collapsed view (expand to see all)

@@ -4,13 +4,29 @@ Pi is a minimal terminal coding harness. It is designed to stay small at the cor
 
 ## Quick start
 
-Install pi with npm:
+Install Pi with npm:
 
 ```bash
-npm install -g @mariozechner/pi-coding-agent
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 ```
 
-And run it:
+`--ignore-scripts` disables dependency lifecycle scripts during install. Pi does not require install scripts for normal npm installs.
+
+On Linux or macOS, you can also use the installer:
+
+```bash
+curl -fsSL https://pi.dev/install.sh | sh
+```
+
+To uninstall pi itself, use npm for curl and npm installs:
+
+```bash
+npm uninstall -g @earendil-works/pi-coding-agent
+```
+
+For pnpm, Yarn, or Bun installs, use the matching global remove command: `pnpm remove -g @earendil-works/pi-coding-agent`, `yarn global remove @earendil-works/pi-coding-agent`, or `bun uninstall -g @earendil-works/pi-coding-agent`.
+
+Then run it in a project directory:
 
 ```bash
 pi
@@ -18,13 +34,19 @@ pi
 
 Authenticate with `/login` for subscription providers, or set an API key such as `ANTHROPIC_API_KEY` before starting pi.
 
+For the full first-run flow, see [Quickstart](quickstart.md).
+
 ## Start here
 
+- [Quickstart](quickstart.md) - install, authenticate, and run a first session.
+- [Using Pi](usage.md) - interactive mode, slash commands, context files, and CLI reference.
 - [Providers](providers.md) - subscription and API-key setup for built-in providers.
+- [llama.cpp](llama-cpp.md) - run a local router and manage models with `/llama`.
+- [Security](security.md) - project trust, sandbox boundaries, and vulnerability reporting.
+- [Containerization](containerization.md) - sandbox pi with Gondolin, Docker, or OpenShell.
 - [Settings](settings.md) - global and project settings.
 - [Keybindings](keybindings.md) - default shortcuts and custom keybindings.
-- [Sessions](session.md) - session storage format and session files.
-- [Session tree](tree.md) - branching and navigating previous turns.
+- [Sessions](sessions.md) - session management, branching, and tree navigation.
 - [Compaction](compaction.md) - context compaction and branch summarization.
 
 ## Customization
@@ -43,6 +65,11 @@ Authenticate with `/login` for subscription providers, or set an API key such as
 - [RPC mode](rpc.md) - integrate over stdin/stdout JSONL.
 - [JSON event stream mode](json.md) - print mode with structured events.
 - [TUI components](tui.md) - build custom terminal UI for extensions.
+
+## Reference
+
+- [Environment variables](environment-variables.md) - Pi process configuration and session metadata available to bash tools.
+- [Session format](session-format.md) - JSONL session file format, entry types, and SessionManager API.
 
 ## Platform setup
 

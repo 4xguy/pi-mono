@@ -1,7 +1,7 @@
 import { join } from "node:path";
-import { nowIsoTimestamp } from "../contracts/common.js";
-import type { FabricPaths } from "../storage/paths.js";
-import { writeTextFileIfMissing } from "../storage/files.js";
+import { nowIsoTimestamp } from "../contracts/common.ts";
+import type { FabricPaths } from "../storage/paths.ts";
+import { writeTextFileIfMissing } from "../storage/files.ts";
 
 export interface SeedResult {
   path: string;

@@ -9,7 +9,7 @@ import {
 	hasWorktreeChanges,
 	removeWorktree,
 	runCommand,
-} from "../examples/extensions/subagent/worktree.js";
+} from "../examples/extensions/subagent/worktree.ts";
 
 const tempDirs: string[] = [];
 const timeoutMs = 30_000;

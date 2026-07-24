@@ -1,4 +1,4 @@
-import type { CoordinatorRunState } from "./coordinator-monitor.js";
+import type { CoordinatorRunState } from "./coordinator-monitor.ts";
 
 export interface CoordinatorInspectorState {
 	selectedCoordinator: number;

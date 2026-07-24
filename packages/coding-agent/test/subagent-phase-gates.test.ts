@@ -6,7 +6,7 @@ import {
 	markSmokeSkipped,
 	recordSmokeFixAttempt,
 	validatePhaseGateState,
-} from "../examples/extensions/subagent/phase-gates.js";
+} from "../examples/extensions/subagent/phase-gates.ts";
 
 describe("subagent phase gates", () => {
 	it("validates required smoke gate inputs", () => {

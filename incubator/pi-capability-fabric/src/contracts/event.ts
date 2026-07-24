@@ -1,4 +1,4 @@
-import type { EventType, VersionedDocument } from "./common.js";
+import type { EventType, VersionedDocument } from "./common.ts";
 
 export interface RunEventDocument extends VersionedDocument {
   run_id: string;

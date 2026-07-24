@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { extname } from "node:path";
-import type { SandboxAdapter, SandboxExecutionResult, SandboxExecutionSpec } from "./sandbox.js";
+import type { SandboxAdapter, SandboxExecutionResult, SandboxExecutionSpec } from "./sandbox.ts";
 
 interface SpawnCommand {
   command: string;

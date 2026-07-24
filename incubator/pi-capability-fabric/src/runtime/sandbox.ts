@@ -1,4 +1,4 @@
-import type { CapabilityLanguage } from "../contracts/common.js";
+import type { CapabilityLanguage } from "../contracts/common.ts";
 
 export interface SandboxExecutionSpec {
   language: CapabilityLanguage;

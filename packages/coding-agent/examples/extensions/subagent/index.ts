@@ -9,19 +9,25 @@ import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentToolResult, ThinkingLevel } from "@mariozechner/pi-agent-core";
-import type { Message } from "@mariozechner/pi-ai";
-import { StringEnum } from "@mariozechner/pi-ai";
-import { type ExtensionAPI, getMarkdownTheme, withFileMutationQueue } from "@mariozechner/pi-coding-agent";
-import { Container, Markdown, Spacer, Text } from "@mariozechner/pi-tui";
+import type { AgentToolResult, ThinkingLevel } from "@earendil-works/pi-agent-core";
+import type { Message } from "@earendil-works/pi-ai";
+import { StringEnum } from "@earendil-works/pi-ai";
+import {
+	CONFIG_DIR_NAME,
+	type ExtensionAPI,
+	getAgentDir,
+	getMarkdownTheme,
+	withFileMutationQueue,
+} from "@earendil-works/pi-coding-agent";
+import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.js";
-import { loadSubagentConfig } from "./config.js";
-import { buildCuratedContent } from "./curation.js";
-import { applyPatchToRepo } from "./integration.js";
-import { shouldFailOnConflicts, toSchedulerTask } from "./policy.js";
-import { resolveTaskExecution } from "./profiles.js";
-import { buildSchedulerWaves } from "./scheduler.js";
+import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.ts";
+import { loadSubagentConfig } from "./config.ts";
+import { buildCuratedContent } from "./curation.ts";
+import { applyPatchToRepo } from "./integration.ts";
+import { shouldFailOnConflicts, toSchedulerTask } from "./policy.ts";
+import { resolveTaskExecution } from "./profiles.ts";
+import { buildSchedulerWaves } from "./scheduler.ts";
 import type {
 	IsolationMode,
 	ResolvedTaskExecution,
@@ -33,7 +39,7 @@ import type {
 	UsageStats,
 	WorktreeHandle,
 	WriteConflictPolicy,
-} from "./types.js";
+} from "./types.ts";
 import {
 	createWorktree,
 	detectGitRepoRoot,
@@ -41,7 +47,7 @@ import {
 	hasWorktreeChanges,
 	pruneWorktrees,
 	removeWorktree,
-} from "./worktree.js";
+} from "./worktree.ts";
 
 const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh"] as const;
 const COLLAPSED_ITEM_COUNT = 10;
@@ -743,8 +749,8 @@ export default function (pi: ExtensionAPI) {
 		description: [
 			"Delegate tasks to specialized subagents with isolated context.",
 			"Modes: single (agent + task), parallel (tasks array), chain (sequential with {previous} placeholder).",
-			'Default agent scope is "user" (from ~/.pi/agent/agents).',
-			'To enable project-local agents in .pi/agents, set agentScope: "both" (or "project").',
+			`Default agent scope is "user" (from ${path.join(getAgentDir(), "agents")}).`,
+			`To enable project-local agents in ${CONFIG_DIR_NAME}/agents, set agentScope: "both" (or "project").`,
 		].join(" "),
 		parameters: SubagentParams,
 
@@ -1247,7 +1253,7 @@ export default function (pi: ExtensionAPI) {
 
 			if (details.mode === "single" && details.results.length === 1) {
 				const single = details.results[0];
-				const isError = single.exitCode !== 0 || single.stopReason === "error" || single.stopReason === "aborted";
+				const isError = isExecutionError(single);
 				const icon = isError ? theme.fg("error", "✗") : theme.fg("success", "✓");
 				const displayItems = getDisplayItems(single.messages);
 				const finalOutput = getFinalOutput(single.messages);
@@ -1415,8 +1421,12 @@ export default function (pi: ExtensionAPI) {
 
 			if (details.mode === "parallel") {
 				const running = details.results.filter((entry) => entry.exitCode === -1).length;
-				const successCount = details.results.filter((entry) => entry.exitCode === 0).length;
-				const failCount = details.results.filter((entry) => entry.exitCode > 0).length;
+				const successCount = details.results.filter(
+					(entry) => entry.exitCode !== -1 && !isExecutionError(entry),
+				).length;
+				const failCount = details.results.filter(
+					(entry) => entry.exitCode !== -1 && isExecutionError(entry),
+				).length;
 				const isRunning = running > 0;
 				const icon = isRunning
 					? theme.fg("warning", "⏳")
@@ -1438,7 +1448,7 @@ export default function (pi: ExtensionAPI) {
 					);
 
 					for (const entry of details.results) {
-						const rIcon = entry.exitCode === 0 ? theme.fg("success", "✓") : theme.fg("error", "✗");
+						const rIcon = isExecutionError(entry) ? theme.fg("error", "✗") : theme.fg("success", "✓");
 						const displayItems = getDisplayItems(entry.messages);
 						const finalOutput = getFinalOutput(entry.messages);
 
@@ -1485,9 +1495,9 @@ export default function (pi: ExtensionAPI) {
 					const rIcon =
 						entry.exitCode === -1
 							? theme.fg("warning", "⏳")
-							: entry.exitCode === 0
-								? theme.fg("success", "✓")
-								: theme.fg("error", "✗");
+							: isExecutionError(entry)
+								? theme.fg("error", "✗")
+								: theme.fg("success", "✓");
 					const displayItems = getDisplayItems(entry.messages);
 					text += `\n\n${theme.fg("muted", "─── ")}${theme.fg("accent", entry.agent)} ${rIcon}`;
 					if (entry.worktreePath) text += `\n${theme.fg("dim", `worktree: ${entry.worktreePath}`)}`;

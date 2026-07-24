@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir } from "@mariozechner/pi-coding-agent";
-import type { SubagentDelegationMode, WriteConflictPolicy } from "./types.js";
+import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import type { SubagentDelegationMode, WriteConflictPolicy } from "./types.ts";
 
 export interface SubagentRuntimeConfig {
 	maxParallelTasks: number;

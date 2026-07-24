@@ -7,7 +7,7 @@ import {
 	createSharedContextStore,
 	type SharedContextMode,
 	type TaskHandoffEnvelope,
-} from "../examples/extensions/subagent/context-memory.js";
+} from "../examples/extensions/subagent/context-memory.ts";
 
 describe("subagent shared context memory", () => {
 	const tempDirs: string[] = [];

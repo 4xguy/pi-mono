@@ -1,8 +1,8 @@
-import type { CapabilityLanguage } from "../contracts/common.js";
-import type { CapabilityManifestDocument, CapabilityRegistryEntry } from "../contracts/capability.js";
-import type { RunDocument } from "../contracts/run.js";
-import { createFoundryService } from "./service.js";
-import type { FabricScope } from "../storage/paths.js";
+import type { CapabilityLanguage } from "../contracts/common.ts";
+import type { CapabilityManifestDocument, CapabilityRegistryEntry } from "../contracts/capability.ts";
+import type { RunDocument } from "../contracts/run.ts";
+import { createFoundryService } from "./service.ts";
+import type { FabricScope } from "../storage/paths.ts";
 
 export interface FabricBuildOptions {
   scope?: FabricScope;

@@ -1,5 +1,5 @@
-import type { Message, TextContent } from "@mariozechner/pi-ai";
-import type { SingleResult, SubagentExecutionMode } from "./types.js";
+import type { Message, TextContent } from "@earendil-works/pi-ai";
+import type { SingleResult, SubagentExecutionMode } from "./types.ts";
 
 function truncate(text: string, maxChars: number): string {
 	if (text.length <= maxChars) return text;

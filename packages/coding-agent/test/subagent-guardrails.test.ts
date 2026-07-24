@@ -15,7 +15,7 @@ import {
 	SUBAGENT_ENV_REMAINING_TOKENS,
 	SUBAGENT_ENV_ROOT_STARTED_AT,
 	SUBAGENT_ENV_RUN_ID,
-} from "../examples/extensions/subagent/guardrails.js";
+} from "../examples/extensions/subagent/guardrails.ts";
 
 describe("subagent guardrails", () => {
 	it("normalizeTask compacts whitespace and lowercases", () => {

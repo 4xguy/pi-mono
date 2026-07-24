@@ -3,7 +3,7 @@ import type {
   CapabilityStatus,
   TimestampedDocument,
   VersionedDocument,
-} from "./common.js";
+} from "./common.ts";
 
 export interface CapabilityRegistryEntry {
   id: string;

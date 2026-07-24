@@ -3,28 +3,28 @@ import type {
   CapabilityManifestDocument,
   CapabilityRegistryEntry,
   CapabilityValidationReportDocument,
-} from "../contracts/capability.js";
+} from "../contracts/capability.ts";
 import {
   CAPABILITY_ID_PATTERN,
   nowIsoTimestamp,
   type CapabilityLanguage,
   type RunStatus,
-} from "../contracts/common.js";
-import type { RunEventDocument } from "../contracts/event.js";
-import type { RunDocument } from "../contracts/run.js";
+} from "../contracts/common.ts";
+import type { RunEventDocument } from "../contracts/event.ts";
+import type { RunDocument } from "../contracts/run.ts";
 import {
   parseCapabilityManifestDocument,
   parseCapabilityValidationReportDocument,
   parseRunDocument,
   parseRunEventDocument,
-} from "../contracts/validators.js";
-import { RegistryService } from "../registry/registry-service.js";
-import { RunRepository } from "../repositories/run-repo.js";
-import { RuntimeService } from "../runtime/runtime-service.js";
-import { generateRunId } from "../runtime/run-id.js";
-import { fileExists, readTextFile, writeTextFileAtomic } from "../storage/files.js";
-import { type FabricPaths, getFabricPaths } from "../storage/paths.js";
-import { decodeYaml, encodeYaml } from "../storage/yaml.js";
+} from "../contracts/validators.ts";
+import { RegistryService } from "../registry/registry-service.ts";
+import { RunRepository } from "../repositories/run-repo.ts";
+import { RuntimeService } from "../runtime/runtime-service.ts";
+import { generateRunId } from "../runtime/run-id.ts";
+import { fileExists, readTextFile, writeTextFileAtomic } from "../storage/files.ts";
+import { type FabricPaths, getFabricPaths } from "../storage/paths.ts";
+import { decodeYaml, encodeYaml } from "../storage/yaml.ts";
 
 interface FoundryServiceOptions {
   paths?: FabricPaths;

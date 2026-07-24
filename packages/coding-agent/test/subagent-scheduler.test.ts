@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildSchedulerWaves } from "../examples/extensions/subagent/scheduler.js";
-import type { SchedulerTask } from "../examples/extensions/subagent/types.js";
+import { buildSchedulerWaves } from "../examples/extensions/subagent/scheduler.ts";
+import type { SchedulerTask } from "../examples/extensions/subagent/types.ts";
 
 describe("subagent scheduler", () => {
 	it("groups safe tasks into shared waves", () => {

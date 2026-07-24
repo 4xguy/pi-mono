@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
 	COMPLETION_STATUS_WINDOW_MS,
 	CoordinatorMonitor,
-} from "../examples/extensions/subagent/coordinator-monitor.js";
+} from "../examples/extensions/subagent/coordinator-monitor.ts";
 
 describe("subagent coordinator monitor", () => {
 	it("formats compact status summary with parallel counters", () => {

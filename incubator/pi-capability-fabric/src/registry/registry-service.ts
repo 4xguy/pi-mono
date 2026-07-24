@@ -2,17 +2,17 @@ import { join } from "node:path";
 import type {
   CapabilityManifestDocument,
   CapabilityRegistryEntry,
-} from "../contracts/capability.js";
-import type { ProfileDocument } from "../contracts/profile.js";
-import type { RunDocument } from "../contracts/run.js";
-import { parseCapabilityManifestDocument } from "../contracts/validators.js";
-import { CapabilityRegistryRepository } from "../repositories/capability-registry-repo.js";
-import { ProfileRepository } from "../repositories/profile-repo.js";
-import { RunRepository } from "../repositories/run-repo.js";
-import { fileExists, readTextFile } from "../storage/files.js";
-import { type FabricPaths, getFabricPaths } from "../storage/paths.js";
-import { decodeYaml } from "../storage/yaml.js";
-import { type ResolveCapabilitiesOptions, resolveCapabilities } from "./resolver.js";
+} from "../contracts/capability.ts";
+import type { ProfileDocument } from "../contracts/profile.ts";
+import type { RunDocument } from "../contracts/run.ts";
+import { parseCapabilityManifestDocument } from "../contracts/validators.ts";
+import { CapabilityRegistryRepository } from "../repositories/capability-registry-repo.ts";
+import { ProfileRepository } from "../repositories/profile-repo.ts";
+import { RunRepository } from "../repositories/run-repo.ts";
+import { fileExists, readTextFile } from "../storage/files.ts";
+import { type FabricPaths, getFabricPaths } from "../storage/paths.ts";
+import { decodeYaml } from "../storage/yaml.ts";
+import { type ResolveCapabilitiesOptions, resolveCapabilities } from "./resolver.ts";
 
 export interface ListCapabilitiesOptions {
   status?: CapabilityRegistryEntry["status"];

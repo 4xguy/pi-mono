@@ -2,19 +2,19 @@ import { dirname, join } from "node:path";
 import type {
   CapabilityManifestDocument,
   CapabilityRegistryEntry,
-} from "../contracts/capability.js";
-import { nowIsoTimestamp } from "../contracts/common.js";
-import type { RunEventDocument } from "../contracts/event.js";
-import type { ProfileDocument } from "../contracts/profile.js";
-import type { RunDocument } from "../contracts/run.js";
-import { parseRunDocument, parseRunEventDocument } from "../contracts/validators.js";
-import { RegistryService } from "../registry/registry-service.js";
-import { RunRepository } from "../repositories/run-repo.js";
-import { fileExists, writeTextFileAtomic } from "../storage/files.js";
-import { type FabricPaths, getFabricPaths } from "../storage/paths.js";
-import { generateRunId } from "./run-id.js";
-import { LocalProcessSandbox } from "./local-process-sandbox.js";
-import type { SandboxAdapter, SandboxExecutionResult } from "./sandbox.js";
+} from "../contracts/capability.ts";
+import { nowIsoTimestamp } from "../contracts/common.ts";
+import type { RunEventDocument } from "../contracts/event.ts";
+import type { ProfileDocument } from "../contracts/profile.ts";
+import type { RunDocument } from "../contracts/run.ts";
+import { parseRunDocument, parseRunEventDocument } from "../contracts/validators.ts";
+import { RegistryService } from "../registry/registry-service.ts";
+import { RunRepository } from "../repositories/run-repo.ts";
+import { fileExists, writeTextFileAtomic } from "../storage/files.ts";
+import { type FabricPaths, getFabricPaths } from "../storage/paths.ts";
+import { generateRunId } from "./run-id.ts";
+import { LocalProcessSandbox } from "./local-process-sandbox.ts";
+import type { SandboxAdapter, SandboxExecutionResult } from "./sandbox.ts";
 
 interface RuntimeServiceOptions {
   paths?: FabricPaths;

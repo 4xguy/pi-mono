@@ -1,11 +1,11 @@
 import { readdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import type { ProfileDocument } from "../contracts/profile.js";
-import { nowIsoTimestamp } from "../contracts/common.js";
-import { parseProfileDocument } from "../contracts/validators.js";
-import { fileExists, readTextFile, writeTextFileAtomic } from "../storage/files.js";
-import { type FabricPaths, getFabricPaths } from "../storage/paths.js";
-import { decodeYaml, encodeYaml } from "../storage/yaml.js";
+import type { ProfileDocument } from "../contracts/profile.ts";
+import { nowIsoTimestamp } from "../contracts/common.ts";
+import { parseProfileDocument } from "../contracts/validators.ts";
+import { fileExists, readTextFile, writeTextFileAtomic } from "../storage/files.ts";
+import { type FabricPaths, getFabricPaths } from "../storage/paths.ts";
+import { decodeYaml, encodeYaml } from "../storage/yaml.ts";
 
 export class ProfileRepository {
   constructor(private readonly paths: FabricPaths = getFabricPaths()) {}

@@ -1,6 +1,6 @@
-import type { RunDocument } from "../contracts/run.js";
-import { createRegistryService } from "./service.js";
-import type { FabricScope } from "../storage/paths.js";
+import type { RunDocument } from "../contracts/run.ts";
+import { createRegistryService } from "./service.ts";
+import type { FabricScope } from "../storage/paths.ts";
 
 export interface FabricRunsOptions {
   scope?: FabricScope;

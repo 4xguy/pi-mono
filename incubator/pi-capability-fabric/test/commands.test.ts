@@ -1,22 +1,22 @@
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runFabricInit } from "../src/commands/fabric-init.js";
-import { runFabricList } from "../src/commands/fabric-list.js";
-import { runFabricProfiles } from "../src/commands/fabric-profiles.js";
-import { runFabricRun } from "../src/commands/fabric-run.js";
-import { runFabricRuns } from "../src/commands/fabric-runs.js";
-import { runFabricShow } from "../src/commands/fabric-show.js";
+import { runFabricInit } from "../src/commands/fabric-init.ts";
+import { runFabricList } from "../src/commands/fabric-list.ts";
+import { runFabricProfiles } from "../src/commands/fabric-profiles.ts";
+import { runFabricRun } from "../src/commands/fabric-run.ts";
+import { runFabricRuns } from "../src/commands/fabric-runs.ts";
+import { runFabricShow } from "../src/commands/fabric-show.ts";
 import type {
   CapabilityManifestDocument,
   CapabilityRegistryEntry,
-} from "../src/contracts/capability.js";
-import type { RunDocument } from "../src/contracts/run.js";
-import { CapabilityRegistryRepository } from "../src/repositories/capability-registry-repo.js";
-import { RunRepository } from "../src/repositories/run-repo.js";
-import { writeTextFileAtomic } from "../src/storage/files.js";
-import { getFabricPaths } from "../src/storage/paths.js";
-import { encodeYaml } from "../src/storage/yaml.js";
-import { createTempDir, removeTempDir } from "./helpers.js";
+} from "../src/contracts/capability.ts";
+import type { RunDocument } from "../src/contracts/run.ts";
+import { CapabilityRegistryRepository } from "../src/repositories/capability-registry-repo.ts";
+import { RunRepository } from "../src/repositories/run-repo.ts";
+import { writeTextFileAtomic } from "../src/storage/files.ts";
+import { getFabricPaths } from "../src/storage/paths.ts";
+import { encodeYaml } from "../src/storage/yaml.ts";
+import { createTempDir, removeTempDir } from "./helpers.ts";
 
 const cleanupDirs: string[] = [];
 

@@ -1,4 +1,4 @@
-import type { TimestampedDocument, VersionedDocument } from "./common.js";
+import type { TimestampedDocument, VersionedDocument } from "./common.ts";
 
 export interface ProfilePolicyDefaults {
   require_promoted_capabilities: boolean;

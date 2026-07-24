@@ -3,16 +3,16 @@ import type {
   CapabilityAliasRegistryDocument,
   CapabilityRegistryDocument,
   CapabilityRegistryEntry,
-} from "../contracts/capability.js";
-import { CAPABILITY_ID_PATTERN, PROFILE_ID_PATTERN, nowIsoTimestamp } from "../contracts/common.js";
+} from "../contracts/capability.ts";
+import { CAPABILITY_ID_PATTERN, PROFILE_ID_PATTERN, nowIsoTimestamp } from "../contracts/common.ts";
 import {
   parseCapabilityAliasRegistryDocument,
   parseCapabilityRegistryDocument,
   validateCapabilityRegistryEntry,
-} from "../contracts/validators.js";
-import { fileExists, readTextFile, writeTextFileAtomic } from "../storage/files.js";
-import { type FabricPaths, getFabricPaths } from "../storage/paths.js";
-import { decodeYaml, encodeYaml } from "../storage/yaml.js";
+} from "../contracts/validators.ts";
+import { fileExists, readTextFile, writeTextFileAtomic } from "../storage/files.ts";
+import { type FabricPaths, getFabricPaths } from "../storage/paths.ts";
+import { decodeYaml, encodeYaml } from "../storage/yaml.ts";
 
 function createEmptyCapabilityRegistry(now: string): CapabilityRegistryDocument {
   return {

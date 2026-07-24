@@ -4,10 +4,9 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
-import { getAgentDir } from "../../../src/config.js";
-import { parseFrontmatter } from "../../../src/utils/frontmatter.js";
-import type { IsolationMode, TaskMode } from "./types.js";
+import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
+import { CONFIG_DIR_NAME, getAgentDir, parseFrontmatter } from "@earendil-works/pi-coding-agent";
+import type { IsolationMode, TaskMode } from "./types.ts";
 
 export type AgentScope = "user" | "project" | "both";
 
@@ -160,7 +159,7 @@ function isDirectory(p: string): boolean {
 export function findNearestProjectAgentsDir(cwd: string): string | null {
 	let currentDir = cwd;
 	while (true) {
-		const candidate = path.join(currentDir, ".pi", "agents");
+		const candidate = path.join(currentDir, CONFIG_DIR_NAME, "agents");
 		if (isDirectory(candidate)) return candidate;
 
 		const parentDir = path.dirname(currentDir);

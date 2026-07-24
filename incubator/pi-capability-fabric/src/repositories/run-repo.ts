@@ -1,18 +1,18 @@
 import { mkdir, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { RunEventDocument } from "../contracts/event.js";
-import type { RunDocument } from "../contracts/run.js";
-import { nowIsoTimestamp } from "../contracts/common.js";
-import { parseRunDocument, parseRunEventDocument } from "../contracts/validators.js";
+import type { RunEventDocument } from "../contracts/event.ts";
+import type { RunDocument } from "../contracts/run.ts";
+import { nowIsoTimestamp } from "../contracts/common.ts";
+import { parseRunDocument, parseRunEventDocument } from "../contracts/validators.ts";
 import {
   appendTextLine,
   fileExists,
   readTextFile,
   writeTextFileAtomic,
   writeTextFileIfMissing,
-} from "../storage/files.js";
-import { type FabricPaths, getFabricPaths } from "../storage/paths.js";
-import { decodeYaml, encodeYaml } from "../storage/yaml.js";
+} from "../storage/files.ts";
+import { type FabricPaths, getFabricPaths } from "../storage/paths.ts";
+import { decodeYaml, encodeYaml } from "../storage/yaml.ts";
 
 export class RunRepository {
   constructor(private readonly paths: FabricPaths = getFabricPaths()) {}

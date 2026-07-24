@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { runFabricBuild } from "../src/commands/fabric-build.js";
-import { runFabricInit } from "../src/commands/fabric-init.js";
-import { runFabricPromote } from "../src/commands/fabric-promote.js";
-import { runFabricTest } from "../src/commands/fabric-test.js";
-import { runFabricShow } from "../src/commands/fabric-show.js";
-import { createTempDir, removeTempDir } from "./helpers.js";
+import { runFabricBuild } from "../src/commands/fabric-build.ts";
+import { runFabricInit } from "../src/commands/fabric-init.ts";
+import { runFabricPromote } from "../src/commands/fabric-promote.ts";
+import { runFabricTest } from "../src/commands/fabric-test.ts";
+import { runFabricShow } from "../src/commands/fabric-show.ts";
+import { createTempDir, removeTempDir } from "./helpers.ts";
 
 const cleanupDirs: string[] = [];
 

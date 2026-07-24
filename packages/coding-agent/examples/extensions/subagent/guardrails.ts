@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import type { AgentConfig } from "./agents.js";
-import type { SharedContextMode } from "./context-memory.js";
+import type { AgentConfig } from "./agents.ts";
+import type { SharedContextMode } from "./context-memory.ts";
 
 export const DEFAULT_MAX_DEPTH = 2;
 export const DEFAULT_MAX_TOTAL_AGENTS = 16;

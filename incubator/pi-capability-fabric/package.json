@@ -8,11 +8,11 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "yaml": "^2.8.2"
+    "yaml": "2.9.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.5",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "@types/node": "22.19.19",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
   }
 }

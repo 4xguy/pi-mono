@@ -2,13 +2,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { applyPatchToRepo } from "../examples/extensions/subagent/integration.js";
+import { applyPatchToRepo } from "../examples/extensions/subagent/integration.ts";
 import {
 	createWorktree,
 	getWorktreePatch,
 	removeWorktree,
 	runCommand,
-} from "../examples/extensions/subagent/worktree.js";
+} from "../examples/extensions/subagent/worktree.ts";
 
 const tempDirs: string[] = [];
 const timeoutMs = 30_000;

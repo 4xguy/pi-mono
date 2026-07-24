@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
-import { runFabricBuild } from "./commands/fabric-build.js";
-import { runFabricInit } from "./commands/fabric-init.js";
-import { runFabricList } from "./commands/fabric-list.js";
-import { runFabricProfiles } from "./commands/fabric-profiles.js";
-import { runFabricPromote } from "./commands/fabric-promote.js";
-import { runFabricRun } from "./commands/fabric-run.js";
-import { runFabricRuns } from "./commands/fabric-runs.js";
-import { runFabricShow } from "./commands/fabric-show.js";
-import { runFabricTest } from "./commands/fabric-test.js";
-import { CAPABILITY_LANGUAGES, CAPABILITY_STATUSES, RUN_STATUSES } from "./contracts/common.js";
-import type { FabricScope } from "./storage/paths.js";
+import { runFabricBuild } from "./commands/fabric-build.ts";
+import { runFabricInit } from "./commands/fabric-init.ts";
+import { runFabricList } from "./commands/fabric-list.ts";
+import { runFabricProfiles } from "./commands/fabric-profiles.ts";
+import { runFabricPromote } from "./commands/fabric-promote.ts";
+import { runFabricRun } from "./commands/fabric-run.ts";
+import { runFabricRuns } from "./commands/fabric-runs.ts";
+import { runFabricShow } from "./commands/fabric-show.ts";
+import { runFabricTest } from "./commands/fabric-test.ts";
+import { CAPABILITY_LANGUAGES, CAPABILITY_STATUSES, RUN_STATUSES } from "./contracts/common.ts";
+import type { FabricScope } from "./storage/paths.ts";
 
 function printHelp(): void {
   console.log(`Pi Capability Fabric (incubator)

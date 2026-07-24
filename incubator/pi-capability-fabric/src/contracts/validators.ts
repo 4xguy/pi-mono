@@ -5,10 +5,10 @@ import type {
   CapabilityRegistryDocument,
   CapabilityRegistryEntry,
   CapabilityValidationReportDocument,
-} from "./capability.js";
-import type { RunEventDocument } from "./event.js";
-import type { ProfileDocument } from "./profile.js";
-import type { RunDocument } from "./run.js";
+} from "./capability.ts";
+import type { RunEventDocument } from "./event.ts";
+import type { ProfileDocument } from "./profile.ts";
+import type { RunDocument } from "./run.ts";
 import {
   CAPABILITY_ID_PATTERN,
   CAPABILITY_LANGUAGES,
@@ -23,7 +23,7 @@ import {
   RUN_STATUSES,
   RUN_TYPES,
   type UnknownRecord,
-} from "./common.js";
+} from "./common.ts";
 
 function expectRecord(value: unknown, fieldPath: string): UnknownRecord {
   if (!isUnknownRecord(value)) {

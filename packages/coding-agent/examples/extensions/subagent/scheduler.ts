@@ -1,5 +1,5 @@
-import { detectWriteConflicts, schedulerTasksConflict } from "./policy.js";
-import type { SchedulerResult, SchedulerTask, SchedulerWave } from "./types.js";
+import { detectWriteConflicts, schedulerTasksConflict } from "./policy.ts";
+import type { SchedulerResult, SchedulerTask, SchedulerWave } from "./types.ts";
 
 function canPlaceInWave(candidate: SchedulerTask, waveTasks: SchedulerTask[]): boolean {
 	for (const task of waveTasks) {

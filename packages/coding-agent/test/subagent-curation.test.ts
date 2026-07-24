@@ -1,7 +1,7 @@
-import type { Message } from "@mariozechner/pi-ai";
+import type { Message } from "@earendil-works/pi-ai";
 import { describe, expect, it } from "vitest";
-import { buildCuratedContent, collectTouchedPaths } from "../examples/extensions/subagent/curation.js";
-import type { SingleResult } from "../examples/extensions/subagent/types.js";
+import { buildCuratedContent, collectTouchedPaths } from "../examples/extensions/subagent/curation.ts";
+import type { SingleResult } from "../examples/extensions/subagent/types.ts";
 
 function assistantTextMessage(text: string): Message {
 	return {

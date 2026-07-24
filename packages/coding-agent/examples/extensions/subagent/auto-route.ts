@@ -1,5 +1,5 @@
-import type { AgentScope } from "./agents.js";
-import type { TopologyPolicy } from "./policy.js";
+import type { AgentScope } from "./agents.ts";
+import type { TopologyPolicy } from "./policy.ts";
 
 export interface AutoRouteCommandCompletion {
 	value: string;

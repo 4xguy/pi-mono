@@ -1,7 +1,7 @@
-import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
-import type { AgentConfig } from "./agents.js";
-import { deriveIsolation, isWriteCapable, normalizeWritePaths } from "./policy.js";
-import type { IsolationMode, ResolvedTaskExecution, SubagentTaskInput, TaskMode } from "./types.js";
+import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
+import type { AgentConfig } from "./agents.ts";
+import { deriveIsolation, isWriteCapable, normalizeWritePaths } from "./policy.ts";
+import type { IsolationMode, ResolvedTaskExecution, SubagentTaskInput, TaskMode } from "./types.ts";
 
 function normalizeTools(tools: string[] | undefined): string[] | undefined {
 	if (!tools || tools.length === 0) return undefined;

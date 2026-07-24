@@ -1,11 +1,11 @@
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runFabricInit } from "../src/commands/fabric-init.js";
-import { FoundryService } from "../src/foundry/foundry-service.js";
-import { RuntimeService } from "../src/runtime/runtime-service.js";
-import { readTextFile, writeTextFileAtomic } from "../src/storage/files.js";
-import { getFabricPaths } from "../src/storage/paths.js";
-import { createTempDir, removeTempDir } from "./helpers.js";
+import { runFabricInit } from "../src/commands/fabric-init.ts";
+import { FoundryService } from "../src/foundry/foundry-service.ts";
+import { RuntimeService } from "../src/runtime/runtime-service.ts";
+import { readTextFile, writeTextFileAtomic } from "../src/storage/files.ts";
+import { getFabricPaths } from "../src/storage/paths.ts";
+import { createTempDir, removeTempDir } from "./helpers.ts";
 
 const cleanupDirs: string[] = [];
 

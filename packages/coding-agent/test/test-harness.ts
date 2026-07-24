@@ -1,3 +1,4 @@
+import { createModelRegistry, getModelRuntime } from "./model-runtime-test-utils.ts";
 /**
  * Test harness for AgentSession runtime testing.
  *
@@ -10,8 +11,8 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentTool } from "@mariozechner/pi-agent-core";
-import { Agent } from "@mariozechner/pi-agent-core";
+import type { AgentTool } from "@earendil-works/pi-agent-core";
+import { Agent } from "@earendil-works/pi-agent-core";
 import type {
 	AssistantMessage,
 	AssistantMessageEvent,
@@ -24,20 +25,19 @@ import type {
 	ThinkingContent,
 	ToolCall,
 	Usage,
-} from "@mariozechner/pi-ai";
-import { createAssistantMessageEventStream } from "@mariozechner/pi-ai";
-import { AgentSession, type AgentSessionEvent } from "../src/core/agent-session.js";
-import { AuthStorage } from "../src/core/auth-storage.js";
-import { ModelRegistry } from "../src/core/model-registry.js";
-import { SessionManager } from "../src/core/session-manager.js";
-import type { Settings } from "../src/core/settings-manager.js";
-import { SettingsManager } from "../src/core/settings-manager.js";
-import type { ExtensionFactory, ResourceLoader } from "../src/index.js";
+} from "@earendil-works/pi-ai";
+import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
+import { AgentSession, type AgentSessionEvent } from "../src/core/agent-session.ts";
+import { AuthStorage } from "../src/core/auth-storage.ts";
+import { SessionManager } from "../src/core/session-manager.ts";
+import type { Settings } from "../src/core/settings-manager.ts";
+import { SettingsManager } from "../src/core/settings-manager.ts";
+import type { InlineExtension, ResourceLoader } from "../src/index.ts";
 import {
 	type CreateTestExtensionsResultInput,
 	createTestExtensionsResult,
 	createTestResourceLoader,
-} from "./utilities.js";
+} from "./utilities.ts";
 
 // ============================================================================
 // Faux model
@@ -335,7 +335,7 @@ export interface HarnessOptions {
 	/** Optional resource loader override. */
 	resourceLoader?: ResourceLoader;
 	/** Inline extensions to load into the session resource loader. */
-	extensionFactories?: Array<ExtensionFactory | CreateTestExtensionsResultInput>;
+	extensionFactories?: Array<InlineExtension | CreateTestExtensionsResultInput>;
 }
 
 export interface Harness {
@@ -361,11 +361,11 @@ function createTempDir(): string {
 	return tempDir;
 }
 
-function createHarnessWithResourceLoader(
+async function createHarnessWithResourceLoader(
 	options: HarnessOptions,
 	resourceLoader: ResourceLoader,
 	tempDir: string,
-): Harness {
+): Promise<Harness> {
 	const baseModel = options.model ?? fauxModel;
 	const model: Model<any> = options.contextWindow ? { ...baseModel, contextWindow: options.contextWindow } : baseModel;
 
@@ -378,7 +378,7 @@ function createHarnessWithResourceLoader(
 			systemPrompt: options.systemPrompt ?? "You are a test assistant.",
 			tools: options.tools ?? [],
 		},
-		streamFn,
+		streamFn: streamFn,
 	});
 
 	const sessionManager = SessionManager.inMemory();
@@ -389,15 +389,32 @@ function createHarnessWithResourceLoader(
 	}
 
 	const authStorage = AuthStorage.create(join(tempDir, "auth.json"));
-	authStorage.setRuntimeApiKey(model.provider, "faux-key");
-	const modelRegistry = ModelRegistry.create(authStorage, tempDir);
+	await authStorage.modify(model.provider, async () => ({ type: "api_key", key: "faux-key" }));
+	const modelRegistry = await createModelRegistry(authStorage, tempDir);
+	modelRegistry.registerProvider(model.provider, {
+		baseUrl: model.baseUrl,
+		api: model.api,
+		models: [
+			{
+				id: model.id,
+				name: model.name,
+				api: model.api,
+				reasoning: model.reasoning,
+				input: model.input,
+				cost: model.cost,
+				contextWindow: model.contextWindow,
+				maxTokens: model.maxTokens,
+				baseUrl: model.baseUrl,
+			},
+		],
+	});
 
 	const session = new AgentSession({
 		agent,
 		sessionManager,
 		settingsManager,
 		cwd: tempDir,
-		modelRegistry,
+		modelRuntime: getModelRuntime(modelRegistry),
 		resourceLoader,
 		baseToolsOverride: options.baseToolsOverride,
 	});
@@ -429,18 +446,18 @@ function createHarnessWithResourceLoader(
 	};
 }
 
-export function createHarness(options: HarnessOptions = {}): Harness {
+export async function createHarness(options: HarnessOptions = {}): Promise<Harness> {
 	if (options.extensionFactories?.length) {
 		throw new Error("createHarness does not support extensionFactories. Use createHarnessWithExtensions().");
 	}
 
 	const tempDir = createTempDir();
-	return createHarnessWithResourceLoader(options, options.resourceLoader ?? createTestResourceLoader(), tempDir);
+	return await createHarnessWithResourceLoader(options, options.resourceLoader ?? createTestResourceLoader(), tempDir);
 }
 
 export async function createHarnessWithExtensions(options: HarnessOptions = {}): Promise<Harness> {
 	const tempDir = createTempDir();
 	const extensionsResult = await createTestExtensionsResult(options.extensionFactories ?? [], tempDir);
 	const resourceLoader = options.resourceLoader ?? createTestResourceLoader({ extensionsResult });
-	return createHarnessWithResourceLoader(options, resourceLoader, tempDir);
+	return await createHarnessWithResourceLoader(options, resourceLoader, tempDir);
 }

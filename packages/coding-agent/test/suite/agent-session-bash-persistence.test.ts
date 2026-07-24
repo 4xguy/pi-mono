@@ -1,10 +1,10 @@
 import { Buffer } from "node:buffer";
-import type { AgentTool } from "@mariozechner/pi-agent-core";
-import { fauxAssistantMessage, fauxToolCall } from "@mariozechner/pi-ai";
+import type { AgentTool } from "@earendil-works/pi-agent-core";
+import { fauxAssistantMessage, fauxToolCall } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { afterEach, describe, expect, it } from "vitest";
-import type { BashOperations } from "../../src/core/tools/bash.js";
-import { createHarness, type Harness } from "./harness.js";
+import type { BashOperations } from "../../src/core/tools/bash.ts";
+import { createHarness, type Harness } from "./harness.ts";
 
 function getEntryTypes(harness: Harness): string[] {
 	return harness.sessionManager.getEntries().map((entry) => entry.type);
@@ -85,8 +85,8 @@ describe("AgentSession bash and persistence characterization", () => {
 		releaseToolExecution?.();
 		await firstPrompt;
 
-		expect(harness.session.hasPendingBashMessages).toBe(true);
-		expect(harness.session.messages.some((message) => message.role === "bashExecution")).toBe(false);
+		expect(harness.session.hasPendingBashMessages).toBe(false);
+		expect(harness.session.messages.some((message) => message.role === "bashExecution")).toBe(true);
 
 		await harness.session.prompt("next turn");
 
@@ -238,5 +238,36 @@ describe("AgentSession bash and persistence characterization", () => {
 
 		expect(result.output).toContain("hello from custom ops");
 		expect(harness.session.messages[harness.session.messages.length - 1]?.role).toBe("bashExecution");
+	});
+
+	it("streams bash output to the callback and session events", async () => {
+		const harness = await createHarness();
+		harnesses.push(harness);
+		const callbackDeltas: string[] = [];
+		const eventUpdates: Array<{ id: string | undefined; delta: string }> = [];
+		const unsubscribe = harness.session.subscribe((event) => {
+			if (event.type === "bash_execution_update") {
+				eventUpdates.push({ id: event.id, delta: event.delta });
+			}
+		});
+		const operations: BashOperations = {
+			exec: async (_command, _cwd, options) => {
+				options.onData(Buffer.from("hello "));
+				options.onData(Buffer.from("world"));
+				return { exitCode: 0 };
+			},
+		};
+
+		await harness.session.executeBash("custom", (delta) => callbackDeltas.push(delta), {
+			id: "bash-1",
+			operations,
+		});
+		unsubscribe();
+
+		expect(callbackDeltas).toEqual(["hello ", "world"]);
+		expect(eventUpdates).toEqual([
+			{ id: "bash-1", delta: "hello " },
+			{ id: "bash-1", delta: "world" },
+		]);
 	});
 });

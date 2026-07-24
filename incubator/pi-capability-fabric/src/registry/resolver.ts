@@ -1,4 +1,4 @@
-import type { CapabilityRegistryEntry } from "../contracts/capability.js";
+import type { CapabilityRegistryEntry } from "../contracts/capability.ts";
 
 export interface ResolveCapabilitiesOptions {
   tags?: string[];

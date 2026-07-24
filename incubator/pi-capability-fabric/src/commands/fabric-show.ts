@@ -1,6 +1,6 @@
-import type { CapabilityManifestDocument, CapabilityRegistryEntry } from "../contracts/capability.js";
-import { createRegistryService } from "./service.js";
-import type { FabricScope } from "../storage/paths.js";
+import type { CapabilityManifestDocument, CapabilityRegistryEntry } from "../contracts/capability.ts";
+import { createRegistryService } from "./service.ts";
+import type { FabricScope } from "../storage/paths.ts";
 
 export interface FabricShowOptions {
   scope?: FabricScope;

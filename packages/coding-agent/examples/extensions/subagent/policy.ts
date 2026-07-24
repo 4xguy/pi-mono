@@ -1,4 +1,4 @@
-import type { IsolationMode, ResolvedTaskExecution, SchedulerTask, TaskMode, WriteConflictPolicy } from "./types.js";
+import type { IsolationMode, ResolvedTaskExecution, SchedulerTask, TaskMode, WriteConflictPolicy } from "./types.ts";
 
 export type TopologyPolicy = "advisory" | "auto";
 

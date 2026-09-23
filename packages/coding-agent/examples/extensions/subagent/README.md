@@ -131,6 +131,8 @@ All task objects support optional overrides:
 - `isolation`
 - `timeoutMs`
 
+When `model` is omitted (by both the task and the agent), the subagent inherits the dispatching session's active model and thinking level.
+
 **Parallel mode streaming**:
 - Shows all tasks with live status (⏳ running, ✓ done, ✗ failed)
 - Updates as each task makes progress

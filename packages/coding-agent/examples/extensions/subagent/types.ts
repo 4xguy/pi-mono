@@ -8,6 +8,17 @@ export type IsolationMode = "none" | "worktree";
 export type WriteConflictPolicy = "serialize" | "fail";
 export type SubagentDelegationMode = "off" | "assist" | "orchestrate";
 
+/**
+ * The parent session's active model/thinking level. Used as the final
+ * fallback tier (after per-task and per-agent overrides) in
+ * resolveTaskExecution() so a subagent inherits the caller's configuration
+ * instead of silently falling back to the CLI's own default model.
+ */
+export interface DispatchDefaults {
+	model?: string;
+	thinkingLevel?: ThinkingLevel;
+}
+
 export interface UsageStats {
 	input: number;
 	output: number;

@@ -32,29 +32,51 @@ export interface AgentDiscoveryResult {
 	projectAgentsDir: string | null;
 }
 
+/**
+ * Raw agent frontmatter. Values are `unknown` because `parseFrontmatter` runs a
+ * real YAML parser, so any scalar or collection can appear here.
+ *
+ * A type alias rather than an interface: `parseFrontmatter` constrains its
+ * parameter to `Record<string, unknown>`, and only an alias picks up the
+ * implicit index signature that satisfies it.
+ */
 type AgentFrontmatter = {
-	name?: string;
-	description?: string;
-	tools?: string | string[];
-	disallowedTools?: string | string[];
-	model?: string;
-	thinking?: string;
-	mode?: string;
-	writePaths?: string | string[];
-	isolation?: string;
-	timeoutMs?: number | string;
-	useProactively?: boolean | string;
+	name?: unknown;
+	description?: unknown;
+	tools?: unknown;
+	disallowedTools?: unknown;
+	model?: unknown;
+	thinking?: unknown;
+	mode?: unknown;
+	writePaths?: unknown;
+	isolation?: unknown;
+	timeoutMs?: unknown;
+	useProactively?: unknown;
 };
 
-function parseListField(value: string | string[] | undefined): string[] | undefined {
-	if (!value) return undefined;
-	const rawItems = Array.isArray(value) ? value : value.split(",");
-	const normalized = rawItems.map((item) => item.trim()).filter(Boolean);
+/**
+ * Normalize a frontmatter list-shaped value (`tools`, `disallowedTools`,
+ * `writePaths`) to a list of strings.
+ *
+ * Both spellings are valid YAML and both are in use:
+ *
+ *     tools: read, bash        # string
+ *     tools: [read, bash]      # array
+ *
+ * so accept either. Anything else (a number, a map, a nested list) yields no
+ * values rather than throwing: this runs inside agent discovery, where a
+ * single bad file must not take down every other agent in the same directory.
+ */
+function parseListField(value: unknown): string[] | undefined {
+	const raw = Array.isArray(value) ? value : typeof value === "string" ? value.split(",") : [];
+	const normalized = raw
+		.filter((item): item is string => typeof item === "string")
+		.map((item) => item.trim())
+		.filter(Boolean);
 	return normalized.length > 0 ? normalized : undefined;
 }
 
-function parseThinking(value: string | undefined): ThinkingLevel | undefined {
-	if (!value) return undefined;
+function parseThinking(value: unknown): ThinkingLevel | undefined {
 	if (
 		value === "off" ||
 		value === "minimal" ||
@@ -68,17 +90,17 @@ function parseThinking(value: string | undefined): ThinkingLevel | undefined {
 	return undefined;
 }
 
-function parseMode(value: string | undefined): TaskMode | undefined {
+function parseMode(value: unknown): TaskMode | undefined {
 	if (value === "read" || value === "write" || value === "auto") return value;
 	return undefined;
 }
 
-function parseIsolation(value: string | undefined): IsolationMode | undefined {
+function parseIsolation(value: unknown): IsolationMode | undefined {
 	if (value === "none" || value === "worktree") return value;
 	return undefined;
 }
 
-function parseTimeoutMs(value: number | string | undefined): number | undefined {
+function parseTimeoutMs(value: unknown): number | undefined {
 	if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
 	if (typeof value === "string") {
 		const parsed = Number(value.trim());
@@ -87,7 +109,7 @@ function parseTimeoutMs(value: number | string | undefined): number | undefined 
 	return undefined;
 }
 
-function parseUseProactively(value: boolean | string | undefined): boolean | undefined {
+function parseUseProactively(value: unknown): boolean | undefined {
 	if (typeof value === "boolean") return value;
 	if (typeof value !== "string") return undefined;
 	if (value === "true") return true;
@@ -123,7 +145,7 @@ export function loadAgentsFromDir(dir: string, source: "user" | "project"): Agen
 
 		const { frontmatter, body } = parseFrontmatter<AgentFrontmatter>(content);
 
-		if (!frontmatter.name || !frontmatter.description) {
+		if (typeof frontmatter.name !== "string" || typeof frontmatter.description !== "string") {
 			continue;
 		}
 
@@ -132,7 +154,7 @@ export function loadAgentsFromDir(dir: string, source: "user" | "project"): Agen
 			description: frontmatter.description,
 			tools: parseListField(frontmatter.tools),
 			disallowedTools: parseListField(frontmatter.disallowedTools),
-			model: frontmatter.model,
+			model: typeof frontmatter.model === "string" ? frontmatter.model : undefined,
 			thinking: parseThinking(frontmatter.thinking),
 			mode: parseMode(frontmatter.mode),
 			writePaths: parseListField(frontmatter.writePaths),

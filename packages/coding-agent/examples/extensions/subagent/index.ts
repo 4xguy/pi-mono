@@ -29,6 +29,7 @@ import { shouldFailOnConflicts, toSchedulerTask } from "./policy.ts";
 import { resolveTaskExecution } from "./profiles.ts";
 import { buildSchedulerWaves } from "./scheduler.ts";
 import type {
+	DispatchDefaults,
 	IsolationMode,
 	ResolvedTaskExecution,
 	SingleResult,
@@ -247,6 +248,12 @@ interface RunSingleAgentOptions {
 	seedResult: SingleResult;
 }
 
+// DispatchDefaults (the parent session's active model/thinking level, from
+// types.ts) is the final fallback tier applied by resolveTaskExecution() in
+// profiles.ts, before RunSingleAgentOptions.model/.thinking are built. This
+// preserves upstream's "inherit subagent session config" fix (#7897) while
+// keeping the guardrail options-object call shape.
+
 async function runSingleAgent(options: RunSingleAgentOptions): Promise<SingleResult> {
 	const {
 		defaultCwd,
@@ -265,6 +272,8 @@ async function runSingleAgent(options: RunSingleAgentOptions): Promise<SingleRes
 	} = options;
 
 	const args: string[] = ["--mode", "json", "-p", "--no-session"];
+	// model/thinking/tools arrive already resolved (task override > agent config >
+	// dispatchDefaults) by resolveTaskExecution() in profiles.ts.
 	if (model) args.push("--model", model);
 	if (thinking) args.push("--thinking", thinking);
 	if (tools && tools.length > 0) args.push("--tools", tools.join(","));
@@ -757,6 +766,10 @@ export default function (pi: ExtensionAPI) {
 		async execute(_toolCallId, params, signal, onUpdate, ctx) {
 			const runtimeConfig = loadSubagentConfig(ctx.cwd);
 			const agentScope: AgentScope = params.agentScope ?? "user";
+			const dispatchDefaults: DispatchDefaults = {
+				model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined,
+				thinkingLevel: ctx.thinkingLevel,
+			};
 			const discovery = discoverAgents(ctx.cwd, agentScope);
 			const agents = discovery.agents;
 			const confirmProjectAgents = params.confirmProjectAgents ?? runtimeConfig.confirmProjectAgents;
@@ -790,7 +803,12 @@ export default function (pi: ExtensionAPI) {
 				};
 			}
 
-			if ((agentScope === "project" || agentScope === "both") && confirmProjectAgents && ctx.hasUI) {
+			if (
+				(agentScope === "project" || agentScope === "both") &&
+				confirmProjectAgents &&
+				ctx.hasUI &&
+				!ctx.isProjectTrusted()
+			) {
 				const requestedAgentNames = new Set<string>();
 				if (params.chain) for (const step of params.chain) requestedAgentNames.add(step.agent);
 				if (params.tasks) for (const task of params.tasks) requestedAgentNames.add(task.agent);
@@ -840,7 +858,7 @@ export default function (pi: ExtensionAPI) {
 						...step,
 						task: step.task.replace(/\{previous\}/g, previousOutput),
 					});
-					const resolved = resolveTaskExecution(i, agent, taskInput, ctx.cwd);
+					const resolved = resolveTaskExecution(i, agent, taskInput, ctx.cwd, dispatchDefaults);
 
 					const chainUpdate: OnUpdateCallback | undefined = onUpdate
 						? (partial) => {
@@ -951,7 +969,7 @@ export default function (pi: ExtensionAPI) {
 							isError: true,
 						};
 					}
-					resolvedTasks.push(resolveTaskExecution(i, agent, taskInput, ctx.cwd));
+					resolvedTasks.push(resolveTaskExecution(i, agent, taskInput, ctx.cwd, dispatchDefaults));
 				}
 
 				const schedule = buildSchedulerWaves(resolvedTasks.map(toSchedulerTask));
@@ -1109,7 +1127,7 @@ export default function (pi: ExtensionAPI) {
 						isError: true,
 					};
 				}
-				const resolved = resolveTaskExecution(0, agent, taskInput, ctx.cwd);
+				const resolved = resolveTaskExecution(0, agent, taskInput, ctx.cwd, dispatchDefaults);
 
 				let artifact = await executeResolvedTask(
 					resolved,
